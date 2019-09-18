@@ -125,11 +125,6 @@ def extract_random_patch(img, mask, patch_size=128):
     gt_patch = gt[x_low:x_up, y_low:y_up,z_low:z_up]
     
     
-    sitk.WriteImage(sitk.GetImageFromArray(img_patch), './img.nrrd', True)
-    sitk.WriteImage(sitk.GetImageFromArray(ins_patch), './ins.nrrd', True)
-    sitk.WriteImage(sitk.GetImageFromArray(gt_patch), './gt.nrrd', True)
-    
-    
     #give the label of completeness(partial or complete)
     vol = np.count_nonzero(gt == 1)
     print(vol)
@@ -178,14 +173,14 @@ def extract_random_patch(img, mask, patch_size=128):
     return img_patch, ins_patch, gt_patch, c_label
 
 
-#%%%
-train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/isotropic_dataset')
-
-dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
-
-img_patch, ins_patch, gt_patch, c_label = next(iter(dataloader_train))
-
-print(c_label.item())
+#%%% Test purpose
+#train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/isotropic_dataset')
+#
+#dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
+#
+#img_patch, ins_patch, gt_patch, c_label = next(iter(dataloader_train))
+#
+#print(c_label.item())
 
 
 
