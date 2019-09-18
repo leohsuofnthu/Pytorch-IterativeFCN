@@ -5,6 +5,7 @@ Created on Tue Sep 17 09:28:51 2019
 @author: Gabriel Hsu
 
 ref: https://github.com/SimpleITK/SimpleITK/issues/561
+     Spiral CT of the Abdomen
 
 """
 
@@ -19,7 +20,7 @@ import numpy as np
 import SimpleITK as sitk
 
 
-root_path = "D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/CSI_dataset"
+root_path = "D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/CSI_dataset/"
 output_path = "D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/isotropic_dataset"
 
 files = [x for x in os.listdir(os.path.join(root_path)) if 'raw' not in x]
@@ -33,10 +34,11 @@ def isotropic_resampler(input_path, output_path):
     new_spacing = [1,1,1]
     
     resampler = sitk.ResampleImageFilter()
-    resampler.SetInterpolator = sitk.sitkNearestNeighbor
-    resampler.SetOutputDirection = raw_img.GetDirection()
-    resampler.SetOutputOrigin = raw_img.GetOrigin()
+    resampler.SetInterpolator(sitk.sitkNearestNeighbor)
+    resampler.SetOutputDirection(raw_img.GetDirection())
+    resampler.SetOutputOrigin(raw_img.GetOrigin())
     resampler.SetOutputSpacing(new_spacing)
+    
     
     orig_size = np.array(raw_img.GetSize(), dtype=np.int)
     orig_spacing = raw_img.GetSpacing()
