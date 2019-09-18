@@ -127,11 +127,9 @@ def extract_random_patch(img, mask, patch_size=128):
     
     #give the label of completeness(partial or complete)
     vol = np.count_nonzero(gt == 1)
-    print(vol)
     sample_vol = np.count_nonzero(gt_patch == 1 )
-    print(sample_vol)
     
-    print('vol:{:.6f}'.format(float(sample_vol/(vol+0.0001))))
+    print('visible volume:{:.6f}'.format(float(sample_vol/(vol+0.0001))))
     
     c_label = 0 if float(sample_vol/(vol+0.0001)) < 0.98 else 1
 

@@ -5,15 +5,12 @@ Created on Wed Sep 18 15:31:22 2019
 @author: Gabriel Hsu
 """
 
-import torch
 from torch.utils.data import Dataset, DataLoader
 from dataset import CSI_Dataset
 
 from medpy.metric.binary import assd, dc
+from sklearn.metrics import confusion_matrix
 
-"""
-code from https://discuss.pytorch.org/t/calculating-dice-coefficient/44154
-"""
 
 def DiceCoeff(pred, gt):
     return dc(pred.to('cpu').numpy(), gt.to('cpu').numpy())
@@ -21,6 +18,10 @@ def DiceCoeff(pred, gt):
 def ASSD(pred, gt):
     return assd(pred.to('cpu').numpy(), gt.to('cpu').numpy())
 
+def iterativeFCNLoss(weight, pred, gt, ):
+    l = 0.1
+    FP = weight*(1-gt)*pred
+    FN = weight*gt*(1-pred)
 
 #%% Test purpose
 
