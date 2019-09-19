@@ -13,6 +13,8 @@ import torch
 from dataset import CSI_Dataset
 from torch.utils.data import Dataset, DataLoader
 
+from random import randint
+
 import SimpleITK as sitk
 
 def elastic_transform(image, alpha, sigma, random_state=None):
@@ -39,6 +41,23 @@ def elastic_transform(image, alpha, sigma, random_state=None):
     distored_image = map_coordinates(image, indices, order=1, mode='reflect')
     return distored_image.reshape(image.shape)
 
+def gaussian_blur(image):
+    return gaussian_filter(image, sigma=1)
+
+def gaussian_noise(image):
+     mean = 0
+     var = 0.1
+     sigma = var**0.5
+     gauss = 50*np.random.normal(mean,sigma,image.shape)
+     gauss = gauss.reshape(image.shape)
+     return image + gauss
+ 
+def crop_z(image, low_z, up_z):
+    crop_img = np.copy(image)
+    crop_img[:,:,:low_z] = image.min()
+    crop_img[:,:,up_z:] = image.min()
+    return crop_img
+
 #%% Test Purpose
     
 train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/isotropic_dataset')
@@ -51,9 +70,10 @@ img_patch = torch.squeeze(img_patch)
 ins_patch = torch.squeeze(ins_patch)
 gt_patch = torch.squeeze(gt_patch)
 
-def_img_patch = elastic_transform(img_patch.numpy(), alpha=200, sigma=8)
-def_gt_patch = elastic_transform(gt_patch.numpy(), alpha=200, sigma=8)
-def_ins_patch = elastic_transform(ins_patch.numpy(), alpha=200, sigma=8)
+
+def_img_patch = crop_z(img_patch.numpy(), 12, 120)
+def_gt_patch = crop_z(gt_patch.numpy(), 12, 120)
+def_ins_patch = crop_z(ins_patch.numpy(), 12, 120)
 
 sitk.WriteImage(sitk.GetImageFromArray(def_img_patch), 'df_img.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(def_gt_patch), 'df_gt.nrrd', True)
