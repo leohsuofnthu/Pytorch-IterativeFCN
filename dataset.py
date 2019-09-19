@@ -3,6 +3,9 @@
 Created on Tue Sep 17 08:55:35 2019
 
 @author: Gabriel Hsu
+
+ref:https://www.kaggle.com/ori226/data-augmentation-with-elastic-deformations
+
 """
 from __future__ import print_function, division
 import os 
@@ -72,6 +75,7 @@ class CSI_Dataset(Dataset):
     
 #%% Extract the 128*128*128 patch
 def extract_random_patch(img, mask, patch_size=128):
+    
     
     #list available vertebrae
     verts = np.unique(mask)
@@ -157,18 +161,11 @@ def extract_random_patch(img, mask, patch_size=128):
     ins_patch = np.pad(ins_patch, ((x_pad[0], x_pad[1]), (y_pad[0], y_pad[1]), (z_pad[0], z_pad[1])), 'constant', constant_values=ins_memory.min())
     gt_patch = np.pad(gt_patch, ((x_pad[0], x_pad[1]), (y_pad[0], y_pad[1]), (z_pad[0], z_pad[1])), 'constant', constant_values=mask.min())
     
-    img_patch = np.expand_dims(img_patch, axis=0)
-    ins_patch = np.expand_dims(ins_patch, axis=0)
-    gt_patch = np.expand_dims(gt_patch, axis=0)
-    
-    
     #Randomly Data Augmentation
     # 50% chance elastic deformation
     if np.random.rand() <= 0.5:
         print('Apply Elastic Deformation')
-        img_patch = elastic_transform(img_patch, alpha=200, sigma=8)
-        ins_patch = elastic_transform(ins_patch, alpha=200, sigma=8)
-        gt_patch = elastic_transform(gt_patch, alpha=200, sigma=8)
+        img_patch = elastic_transform(img_patch, alpha=300, sigma=8)
     # 50% chance gaussian blur
     if np.random.rand() <= 0.5:
         print('Apply Gaussian Blur')
@@ -178,12 +175,10 @@ def extract_random_patch(img, mask, patch_size=128):
         print('Apply Gaussian noise')
         img_patch = gaussian_noise(img_patch)
     # 20% chance random crop 
-    if np.random.rand() <= 0.2:
+    if np.random.rand() <= 0.5:
         print('Apply random Z-crop')
         k = randint(0, 128)
-        img_patch = crop_z(img_patch, k)
-        ins_patch = crop_z(ins_patch, k)
-        gt_patch = crop_z(gt_patch, k)
+        img_patch, ins_patch, gt_patch = crop_z(img_patch, ins_patch, gt_patch, k)
         
     #give the label of completeness(partial or complete)
     vol = np.count_nonzero(gt == 1)
@@ -192,9 +187,12 @@ def extract_random_patch(img, mask, patch_size=128):
     print('visible volume:{:.6f}'.format(float(sample_vol/(vol+0.0001))))
     
     c_label = 0 if float(sample_vol/(vol+0.0001)) < 0.98 else 1
-    c_label = np.expand_dims(c_label, axis=0)
     
-
+    
+    img_patch = np.expand_dims(img_patch, axis=0)
+    ins_patch = np.expand_dims(ins_patch, axis=0)
+    gt_patch = np.expand_dims(gt_patch, axis=0)
+    c_label = np.expand_dims(c_label, axis=0)
     
     return img_patch, ins_patch, gt_patch, c_label
 
@@ -206,20 +204,16 @@ dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
 
 img_patch, ins_patch, gt_patch, c_label = next(iter(dataloader_train))
 
-print(c_label.item())
 
 img_patch = torch.squeeze(img_patch)
 ins_patch = torch.squeeze(ins_patch)
 gt_patch = torch.squeeze(gt_patch)
 print(c_label)
 
-#def_img_patch = crop_z(img_patch.numpy(), 12, 120)
-#def_gt_patch = crop_z(gt_patch.numpy(), 12, 120)
-#def_ins_patch = crop_z(ins_patch.numpy(), 12, 120)
-#
-#sitk.WriteImage(sitk.GetImageFromArray(def_img_patch), 'df_img.nrrd', True)
-#sitk.WriteImage(sitk.GetImageFromArray(def_gt_patch), 'df_gt.nrrd', True)
-#sitk.WriteImage(sitk.GetImageFromArray(def_ins_patch), 'df_ins.nrrd', True)
+
+sitk.WriteImage(sitk.GetImageFromArray(img_patch), 'img.nrrd', True)
+sitk.WriteImage(sitk.GetImageFromArray(gt_patch), 'gt.nrrd', True)
+sitk.WriteImage(sitk.GetImageFromArray(ins_patch), 'ins.nrrd', True)
 
 
 

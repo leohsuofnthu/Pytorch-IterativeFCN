@@ -28,10 +28,10 @@ def elastic_transform(image, alpha, sigma, random_state=None):
     dz = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
 
     x, y, z = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]), np.arange(shape[2]))
-    print(x.shape)
     indices = np.reshape(y+dy, (-1, 1)), np.reshape(x+dx, (-1, 1)), np.reshape(z+dz, (-1, 1))
 
     distored_image = map_coordinates(image, indices, order=1, mode='reflect')
+   
     return distored_image.reshape(image.shape)
 
 def gaussian_blur(image):
@@ -45,13 +45,19 @@ def gaussian_noise(image):
      gauss = gauss.reshape(image.shape)
      return image + gauss
  
-def crop_z(image, z):
+def crop_z(image, ins, gt, z):
     crop_img = np.copy(image)
+    crop_ins = np.copy(ins)
+    crop_gt = np.copy(gt)
     if np.random.rand() <= 0.5:
-        crop_img[:,:,:z] = image.min()
+        crop_img[:z,:,:] = image.min()
+        crop_ins[:z,:,:] = ins.min()
+        crop_gt[:z,:,:] = gt.min()
     else:
-        crop_img[:,:,z:] = image.min()
-    return crop_img
+        crop_img[z:,:,:] = image.min()
+        crop_ins[z:,:,:] = ins.min()
+        crop_gt[z:,:,:] = gt.min()
+    return crop_img, crop_ins, crop_gt
 
 
 
