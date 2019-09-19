@@ -12,11 +12,11 @@ import os
 from random import randint
 
 import numpy as np
+from scipy import ndimage
 
 import torch
 from torch.utils.data import Dataset, DataLoader
 
-import numpy as np
 import SimpleITK as sitk
 
 from data_augmentation import elastic_transform, gaussian_blur, gaussian_noise, crop_z
@@ -69,9 +69,19 @@ class CSI_Dataset(Dataset):
         
         img_patch, ins_patch, gt_patch, c_label = extract_random_patch(img, 
                                                               mask)
+
+        weight = compute_distance_weight_matrix(gt_patch)
+
             
-        return img_patch, ins_patch, gt_patch, c_label
+        return img_patch, ins_patch, gt_patch, weight, c_label
         
+#%% Compute weight distance for loss function
+def compute_distance_weight_matrix(mask, alpha=1, beta=8, omega=6):
+    mask = np.asarray(mask)
+    distance_to_border = ndimage.distance_transform_edt(mask > 0) + ndimage.distance_transform_edt(mask == 0)    
+    weights = alpha + beta*np.exp(-(distance_to_border**2/omega**2))
+    return np.asarray(weights, dtype='float32')
+    
     
 #%% Extract the 128*128*128 patch
 def extract_random_patch(img, mask, patch_size=128):
@@ -202,25 +212,21 @@ train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network f
 
 dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
 
-img_patch, ins_patch, gt_patch, c_label = next(iter(dataloader_train))
+img_patch, ins_patch, gt_patch, weight, c_label = next(iter(dataloader_train))
 
 
 img_patch = torch.squeeze(img_patch)
 ins_patch = torch.squeeze(ins_patch)
 gt_patch = torch.squeeze(gt_patch)
+weight = torch.squeeze(weight)
 print(c_label)
-
-
-sitk.WriteImage(sitk.GetImageFromArray(img_patch), 'img.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(gt_patch), 'gt.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(ins_patch), 'ins.nrrd', True)
 
 
 
 sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), 'img.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(gt_patch.numpy()), 'gt.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(ins_patch.numpy()), 'ins.nrrd', True)
-
+sitk.WriteImage(sitk.GetImageFromArray(weight.numpy()), 'wei.nrrd', True)
 
 
 
