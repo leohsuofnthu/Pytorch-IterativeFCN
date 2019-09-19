@@ -9,13 +9,6 @@ import numpy as np
 from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 
-import torch
-from dataset import CSI_Dataset
-from torch.utils.data import Dataset, DataLoader
-
-from random import randint
-
-import SimpleITK as sitk
 
 def elastic_transform(image, alpha, sigma, random_state=None):
     """Elastic deformation of images as described in [Simard2003]_.
@@ -52,36 +45,13 @@ def gaussian_noise(image):
      gauss = gauss.reshape(image.shape)
      return image + gauss
  
-def crop_z(image, low_z, up_z):
+def crop_z(image, z):
     crop_img = np.copy(image)
-    crop_img[:,:,:low_z] = image.min()
-    crop_img[:,:,up_z:] = image.min()
+    if np.random.rand() <= 0.5:
+        crop_img[:,:,:z] = image.min()
+    else:
+        crop_img[:,:,z:] = image.min()
     return crop_img
 
-#%% Test Purpose
-    
-train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/isotropic_dataset')
 
-dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
-
-img_patch, ins_patch, gt_patch, c_label = next(iter(dataloader_train))
-
-img_patch = torch.squeeze(img_patch)
-ins_patch = torch.squeeze(ins_patch)
-gt_patch = torch.squeeze(gt_patch)
-
-
-def_img_patch = crop_z(img_patch.numpy(), 12, 120)
-def_gt_patch = crop_z(gt_patch.numpy(), 12, 120)
-def_ins_patch = crop_z(ins_patch.numpy(), 12, 120)
-
-sitk.WriteImage(sitk.GetImageFromArray(def_img_patch), 'df_img.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(def_gt_patch), 'df_gt.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(def_ins_patch), 'df_ins.nrrd', True)
-
-
-
-sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), 'img.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(gt_patch.numpy()), 'gt.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(ins_patch.numpy()), 'ins.nrrd', True)
 

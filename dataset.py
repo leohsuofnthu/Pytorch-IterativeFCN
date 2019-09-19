@@ -16,6 +16,8 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import SimpleITK as sitk
 
+from data_augmentation import elastic_transform, gaussian_blur, gaussian_noise, crop_z
+
 """
 The dataset of MICCAI 2014 Spine Challenge
 
@@ -64,7 +66,7 @@ class CSI_Dataset(Dataset):
         
         img_patch, ins_patch, gt_patch, c_label = extract_random_patch(img, 
                                                               mask)
-        
+            
         return img_patch, ins_patch, gt_patch, c_label
         
     
@@ -124,14 +126,6 @@ def extract_random_patch(img, mask, patch_size=128):
     ins_patch = ins_memory[x_low:x_up, y_low:y_up,z_low:z_up]
     gt_patch = gt[x_low:x_up, y_low:y_up,z_low:z_up]
     
-    
-    #give the label of completeness(partial or complete)
-    vol = np.count_nonzero(gt == 1)
-    sample_vol = np.count_nonzero(gt_patch == 1 )
-    
-    print('visible volume:{:.6f}'.format(float(sample_vol/(vol+0.0001))))
-    
-    c_label = 0 if float(sample_vol/(vol+0.0001)) < 0.98 else 1
 
     #paddding the patch to 128*128*128
     if (patch_size - img_patch.shape[0])%2 == 1:
@@ -166,19 +160,72 @@ def extract_random_patch(img, mask, patch_size=128):
     img_patch = np.expand_dims(img_patch, axis=0)
     ins_patch = np.expand_dims(ins_patch, axis=0)
     gt_patch = np.expand_dims(gt_patch, axis=0)
+    
+    
+    #Randomly Data Augmentation
+    # 50% chance elastic deformation
+    if np.random.rand() <= 0.5:
+        print('Apply Elastic Deformation')
+        img_patch = elastic_transform(img_patch, alpha=200, sigma=8)
+        ins_patch = elastic_transform(ins_patch, alpha=200, sigma=8)
+        gt_patch = elastic_transform(gt_patch, alpha=200, sigma=8)
+    # 50% chance gaussian blur
+    if np.random.rand() <= 0.5:
+        print('Apply Gaussian Blur')
+        img_patch = gaussian_blur(img_patch)
+    # 50% chance gaussian noise
+    if np.random.rand() <= 0.5:
+        print('Apply Gaussian noise')
+        img_patch = gaussian_noise(img_patch)
+    # 20% chance random crop 
+    if np.random.rand() <= 0.2:
+        print('Apply random Z-crop')
+        k = randint(0, 128)
+        img_patch = crop_z(img_patch, k)
+        ins_patch = crop_z(ins_patch, k)
+        gt_patch = crop_z(gt_patch, k)
+        
+    #give the label of completeness(partial or complete)
+    vol = np.count_nonzero(gt == 1)
+    sample_vol = np.count_nonzero(gt_patch == 1 )
+    
+    print('visible volume:{:.6f}'.format(float(sample_vol/(vol+0.0001))))
+    
+    c_label = 0 if float(sample_vol/(vol+0.0001)) < 0.98 else 1
     c_label = np.expand_dims(c_label, axis=0)
+    
+
     
     return img_patch, ins_patch, gt_patch, c_label
 
 
 #%%% Test purpose
-#train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/isotropic_dataset')
+train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/isotropic_dataset')
+
+dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
+
+img_patch, ins_patch, gt_patch, c_label = next(iter(dataloader_train))
+
+print(c_label.item())
+
+img_patch = torch.squeeze(img_patch)
+ins_patch = torch.squeeze(ins_patch)
+gt_patch = torch.squeeze(gt_patch)
+print(c_label)
+
+#def_img_patch = crop_z(img_patch.numpy(), 12, 120)
+#def_gt_patch = crop_z(gt_patch.numpy(), 12, 120)
+#def_ins_patch = crop_z(ins_patch.numpy(), 12, 120)
 #
-#dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
-#
-#img_patch, ins_patch, gt_patch, c_label = next(iter(dataloader_train))
-#
-#print(c_label.item())
+#sitk.WriteImage(sitk.GetImageFromArray(def_img_patch), 'df_img.nrrd', True)
+#sitk.WriteImage(sitk.GetImageFromArray(def_gt_patch), 'df_gt.nrrd', True)
+#sitk.WriteImage(sitk.GetImageFromArray(def_ins_patch), 'df_ins.nrrd', True)
+
+
+
+sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), 'img.nrrd', True)
+sitk.WriteImage(sitk.GetImageFromArray(gt_patch.numpy()), 'gt.nrrd', True)
+sitk.WriteImage(sitk.GetImageFromArray(ins_patch.numpy()), 'ins.nrrd', True)
 
 
 
