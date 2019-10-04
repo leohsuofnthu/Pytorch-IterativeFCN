@@ -9,7 +9,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from torchsummaryX import summary
 
 class iterativeFCN(nn.Module):
     
@@ -23,16 +22,19 @@ class iterativeFCN(nn.Module):
         
         return nn.Sequential(
                 nn.Conv3d(in_channels, out_channels, 3, padding = 1),
-                nn.ReLU(),
-                nn.Dropout3d(p=0.2),
+				nn.BatchNorm3d(out_channels),
+				nn.ReLU(),
+				nn.Dropout3d(p=0.2),
                 nn.Conv3d(out_channels, out_channels, 3, padding = 1),
-                nn.ReLU(),
-                nn.BatchNorm3d(out_channels))
+				nn.BatchNorm3d(out_channels),
+                nn.ReLU())
         
     def __init__(self):
         super(iterativeFCN, self).__init__()
         
-        num_channels = 48
+        num_channels = 58
+        
+        print('num_channel',num_channels)
         
         self.conv_initial = self.consecutive_conv(2, num_channels) 
         
@@ -58,6 +60,7 @@ class iterativeFCN(nn.Module):
         x_128 = self.conv_rest(x_128)
         x_64 = self.contract(x_128)
         
+        
         #64*64*64*64 to 64*32*32*32 
         x_64 = self.conv_rest(x_64)
         x_32 = self.contract(x_64)
@@ -81,7 +84,7 @@ class iterativeFCN(nn.Module):
         
         u_128 = self.conv_final(u_128)
         
-        S = F.sigmoid(u_128)
+        S = torch.sigmoid(u_128)
         
         #classification path
         x_8 = self.conv_rest(self.contract(x_16))
@@ -92,7 +95,7 @@ class iterativeFCN(nn.Module):
         
         x_1 = self.contract(x_2)
         
-        C = F.sigmoid(self.dense(torch.flatten(x_1)))
+        C = torch.sigmoid(self.dense(torch.flatten(x_1)))
         
     
         return S,C

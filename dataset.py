@@ -48,16 +48,20 @@ class CSI_Dataset(Dataset):
         
         
         self.img_names =  [f for f in os.listdir(self.img_path) if f.endswith('.mhd')]
-        self.mask_names = [f for f in os.listdir(self.mask_path) if f.endswith('.mhd')]
+#        self.mask_names = [f for f in os.listdir(self.mask_path) if f.endswith('.mhd')]
+
      
     def __len__(self):
         return len(self.img_names)
     
     
     def __getitem__(self, idx):
+    
+        img_name =  self.img_names[idx]
+        mask_name = self.img_names[idx].split('.')[0]+'_label.mhd'
         
-        img_file = os.path.join(self.img_path, self.img_names[idx])
-        mask_file =os.path.join(self.mask_path, self.mask_names[idx])
+        img_file = os.path.join(self.img_path,  img_name)
+        mask_file =os.path.join(self.mask_path, mask_name)
         
         img = sitk.GetArrayFromImage(sitk.ReadImage(img_file))
         mask = sitk.GetArrayFromImage(sitk.ReadImage(mask_file))
@@ -89,9 +93,9 @@ def extract_random_patch(img, mask, patch_size=128):
     
     #list available vertebrae
     verts = np.unique(mask)
-    print('mask values:', verts)
+#    print('mask values:', verts)
     chosen_vert = verts[randint(1, len(verts)-1)]
-    print('chosen_vert:', chosen_vert)
+#    print('chosen_vert:', chosen_vert)
     
     #create corresponde instance memory and ground truth
     ins_memory = np.copy(mask)
@@ -105,8 +109,7 @@ def extract_random_patch(img, mask, patch_size=128):
 #    print(np.unique(gt))
 
     
-    if np.random.rand() <= 0.25:
-        print('Random non-vert Patch')
+    if np.random.rand() <= 0.2:
         patch_center = [np.random.randint(0, s) for s in img.shape]
         lower = [0, 0, 0]
         upper = [img.shape[0], img.shape[1], img.shape[2]]
@@ -115,7 +118,6 @@ def extract_random_patch(img, mask, patch_size=128):
         z = patch_center[2]
         
     else:
-        print('Random vert Patch')
         indices = np.nonzero(mask == chosen_vert)
         lower = [np.min(i) for i in indices]
         upper = [np.max(i) for i in indices]
@@ -167,26 +169,26 @@ def extract_random_patch(img, mask, patch_size=128):
     y_pad = y_pad.astype(int)
     z_pad = z_pad.astype(int)
     
-    img_patch = np.pad(img_patch, ((x_pad[0], x_pad[1]), (y_pad[0], y_pad[1]), (z_pad[0], z_pad[1])), 'constant', constant_values= img.min())
+    img_patch = np.pad(img_patch, ((x_pad[0], x_pad[1]), (y_pad[0], y_pad[1]), (z_pad[0], z_pad[1])), 'constant', constant_values=img.min())
     ins_patch = np.pad(ins_patch, ((x_pad[0], x_pad[1]), (y_pad[0], y_pad[1]), (z_pad[0], z_pad[1])), 'constant', constant_values=ins_memory.min())
-    gt_patch = np.pad(gt_patch, ((x_pad[0], x_pad[1]), (y_pad[0], y_pad[1]), (z_pad[0], z_pad[1])), 'constant', constant_values=mask.min())
+    gt_patch = np.pad(gt_patch, ((x_pad[0], x_pad[1]), (y_pad[0], y_pad[1]), (z_pad[0], z_pad[1])), 'constant', constant_values=gt.min())
     
     #Randomly Data Augmentation
     # 50% chance elastic deformation
     if np.random.rand() <= 0.5:
-        print('Apply Elastic Deformation')
+#        print('elastic deform')
         img_patch = elastic_transform(img_patch, alpha=300, sigma=8)
     # 50% chance gaussian blur
     if np.random.rand() <= 0.5:
-        print('Apply Gaussian Blur')
+#        print('gaussian blur')
         img_patch = gaussian_blur(img_patch)
     # 50% chance gaussian noise
     if np.random.rand() <= 0.5:
-        print('Apply Gaussian noise')
+#        print('gaussian noise')
         img_patch = gaussian_noise(img_patch)
     # 20% chance random crop 
     if np.random.rand() <= 0.5:
-        print('Apply random Z-crop')
+#        print('random crop')
         k = randint(0, 128)
         img_patch, ins_patch, gt_patch = crop_z(img_patch, ins_patch, gt_patch, k)
         
@@ -194,7 +196,7 @@ def extract_random_patch(img, mask, patch_size=128):
     vol = np.count_nonzero(gt == 1)
     sample_vol = np.count_nonzero(gt_patch == 1 )
     
-    print('visible volume:{:.6f}'.format(float(sample_vol/(vol+0.0001))))
+#    print('visible volume:{:.6f}'.format(float(sample_vol/(vol+0.0001))))
     
     c_label = 0 if float(sample_vol/(vol+0.0001)) < 0.98 else 1
     
@@ -208,25 +210,30 @@ def extract_random_patch(img, mask, patch_size=128):
 
 
 #%%% Test purpose
-train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/isotropic_dataset')
+train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/isotropic_dataset', 'test')
 
 dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
 
 img_patch, ins_patch, gt_patch, weight, c_label = next(iter(dataloader_train))
+
+print(img_patch.shape)
+print(gt_patch.shape)
 
 
 img_patch = torch.squeeze(img_patch)
 ins_patch = torch.squeeze(ins_patch)
 gt_patch = torch.squeeze(gt_patch)
 weight = torch.squeeze(weight)
-print(c_label)
 
 
 
-sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), 'img.nrrd', True)
+#produce 17000 training samples, and 3000 test sample
+
+sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), './img.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(gt_patch.numpy()), 'gt.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(ins_patch.numpy()), 'ins.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(weight.numpy()), 'wei.nrrd', True)
+
 
 
 

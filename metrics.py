@@ -7,7 +7,8 @@ Created on Wed Sep 18 15:31:22 2019
 
 
 from medpy.metric.binary import assd, dc
-
+import torch
+import numpy as np
 
 def DiceCoeff(pred, gt):
     return dc(pred.to('cpu').numpy(), gt.to('cpu').numpy())
@@ -17,4 +18,8 @@ def ASSD(pred, gt):
 
 
 
-    
+#%%Test 
+a= torch.zeros((5,5))
+b= torch.zeros((5,5))
+
+print(DiceCoeff(a,b))
