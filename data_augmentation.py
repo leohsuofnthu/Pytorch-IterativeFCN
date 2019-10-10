@@ -10,7 +10,7 @@ from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 
 
-def elastic_transform(image, alpha, sigma, random_state=None):
+def elastic_transform(image, mask, ins, weight, alpha, sigma, random_state=None):
     """Elastic deformation of images as described in [Simard2003]_.
     .. [Simard2003] Simard, Steinkraus and Platt, "Best Practices for
        Convolutional Neural Networks applied to Visual Document Analysis", in
@@ -31,8 +31,11 @@ def elastic_transform(image, alpha, sigma, random_state=None):
     indices = np.reshape(y+dy, (-1, 1)), np.reshape(x+dx, (-1, 1)), np.reshape(z+dz, (-1, 1))
 
     distored_image = map_coordinates(image, indices, order=1, mode='reflect')
-   
-    return distored_image.reshape(image.shape)
+    distored_mask = map_coordinates(mask, indices, order=1, mode='reflect')
+    distorted_ins = map_coordinates(ins, indices, order=1, mode='reflect')
+    distorted_weight = map_coordinates(weight, indices, order=1, mode='reflect')
+	
+    return distored_image.reshape(image.shape), distored_mask.reshape(mask.shape), distorted_ins.reshape(ins.shape),distorted_weight.reshape(weight.shape)
 
 def gaussian_blur(image):
     return gaussian_filter(image, sigma=1)

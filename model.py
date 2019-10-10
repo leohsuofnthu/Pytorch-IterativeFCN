@@ -8,7 +8,6 @@ Created on Mon Sep 16 11:16:47 2019
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchsummary import summary
 
 
 class iterativeFCN(nn.Module):
@@ -23,12 +22,12 @@ class iterativeFCN(nn.Module):
         
         return nn.Sequential(
                 nn.Conv3d(in_channels, out_channels, 3, padding = 1),
+                nn.ReLU(inplace=True),
 				nn.BatchNorm3d(out_channels),
-				nn.ReLU(inplace=True),
 				nn.Dropout3d(p=0.2),
                 nn.Conv3d(out_channels, out_channels, 3, padding = 1),
-				nn.BatchNorm3d(out_channels),
-                nn.ReLU(inplace=True))
+                nn.ReLU(inplace=True),
+				nn.BatchNorm3d(out_channels))
         
     def __init__(self):
         super(iterativeFCN, self).__init__()
@@ -47,7 +46,8 @@ class iterativeFCN(nn.Module):
         
         self.contract = nn.MaxPool3d(2, stride=2)
         
-        self.expand = nn.Upsample(scale_factor=2)
+        self.expand = nn.ConvTranspose3d(num_channels,  num_channels, kernel_size=2, stride=2)
+        #self.expand = nn.Upsample(scale_factor=2)
         
         self.dense = nn.Linear(num_channels, 1)
 
@@ -101,3 +101,6 @@ class iterativeFCN(nn.Module):
     
         return S,C
     
+#%%
+#model = iterativeFCN()
+#summary(model, torch.zeros((1, 2, 128,  128, 128)))
