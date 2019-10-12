@@ -48,19 +48,22 @@ def gaussian_noise(image):
      gauss = gauss.reshape(image.shape)
      return image + gauss
  
-def crop_z(image, ins, gt, z):
+def crop_z(image, ins, gt, weight, z):
     crop_img = np.copy(image)
     crop_ins = np.copy(ins)
     crop_gt = np.copy(gt)
+    crop_weight = np.copy(weight)
     if np.random.rand() <= 0.5:
         crop_img[:z,:,:] = image.min()
         crop_ins[:z,:,:] = ins.min()
         crop_gt[:z,:,:] = gt.min()
+        crop_weight[:z,:,:] = weight.min()
     else:
         crop_img[z:,:,:] = image.min()
         crop_ins[z:,:,:] = ins.min()
         crop_gt[z:,:,:] = gt.min()
-    return crop_img, crop_ins, crop_gt
+        crop_weight[z:,:,:] = weight.min()
+    return crop_img, crop_ins, crop_gt, crop_weight
 
 
 

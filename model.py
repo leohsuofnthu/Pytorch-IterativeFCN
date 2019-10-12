@@ -23,11 +23,12 @@ class iterativeFCN(nn.Module):
         return nn.Sequential(
                 nn.Conv3d(in_channels, out_channels, 3, padding = 1),
                 nn.ReLU(inplace=True),
-				nn.BatchNorm3d(out_channels),
+				nn.InstanceNorm3d(out_channels),
 				nn.Dropout3d(p=0.2),
                 nn.Conv3d(out_channels, out_channels, 3, padding = 1),
                 nn.ReLU(inplace=True),
-				nn.BatchNorm3d(out_channels))
+				nn.InstanceNorm3d(out_channels),
+				nn.Dropout3d(p=0.2))
         
     def __init__(self):
         super(iterativeFCN, self).__init__()
