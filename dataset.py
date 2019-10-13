@@ -9,7 +9,7 @@ ref:https://www.kaggle.com/ori226/data-augmentation-with-elastic-deformations
 """
 from __future__ import print_function, division
 import os 
-from random import randint
+import random
 
 import numpy as np
 from scipy import ndimage
@@ -36,6 +36,7 @@ class CSI_Dataset(Dataset):
             path_dataset(string): Root path to the whole dataset
             subset(string): 'train' or 'test' depend on which subset
         """
+        self.idx = 1
         
         self.dataset_path = dataset_path
         self.subset = subset
@@ -45,7 +46,7 @@ class CSI_Dataset(Dataset):
         
         self.img_path = os.path.join(dataset_path, subset, 'img')
         self.mask_path = os.path.join(dataset_path, subset, 'seg')
-        
+        self.weight_path = os.path.join(dataset_path, subset, 'weight')
         
         self.img_names =  [f for f in os.listdir(self.img_path) if f.endswith('.mhd')]
 #        self.mask_names = [f for f in os.listdir(self.mask_path) if f.endswith('.mhd')]
@@ -59,25 +60,33 @@ class CSI_Dataset(Dataset):
     
         img_name =  self.img_names[idx]
         mask_name = self.img_names[idx].split('.')[0]+'_label.mhd'
+        weight_name = self.img_names[idx].split('.')[0]+'_weight.nrrd'
         
         img_file = os.path.join(self.img_path,  img_name)
-        mask_file =os.path.join(self.mask_path, mask_name)
+        mask_file = os.path.join(self.mask_path, mask_name)
+        weight_file = os.path.join(self.weight_path, weight_name)
         
         img = sitk.GetArrayFromImage(sitk.ReadImage(img_file))
         mask = sitk.GetArrayFromImage(sitk.ReadImage(mask_file))
+        weight = sitk.GetArrayFromImage(sitk.ReadImage(weight_file))
         
-        
+        #z, y, x
+        #print(img.shape)
+        #print(mask.shape)
         #linear transformation from 12bit reconstruction img to HU unit
         #depend on the original data (CSI data value is from 0 ~ 4095)
-        img = img * self.linear_att - self.offset
+        #img = img * self.linear_att - self.offset
+
         
-        img_patch, ins_patch, gt_patch, c_label = extract_random_patch(img, 
-                                                              mask)
+        img_patch, ins_patch, gt_patch, weight_patch, c_label = extract_random_patch(img, 
+                                                              mask, weight, self.idx)
+        
+        #img_patch = (img_patch - img_patch.mean()) / img_patch.std()
+        #print(np.mean(img_patch), np.std(img_patch))
 
-        weight = compute_distance_weight_matrix(gt_patch)
-
+        self.idx+=1
             
-        return img_patch, ins_patch, gt_patch, weight, c_label
+        return img_patch, ins_patch, gt_patch, weight_patch, c_label
         
 #%% Compute weight distance for loss function
 def compute_distance_weight_matrix(mask, alpha=1, beta=8, omega=6):
@@ -88,18 +97,18 @@ def compute_distance_weight_matrix(mask, alpha=1, beta=8, omega=6):
     
     
 #%% Extract the 128*128*128 patch
-def extract_random_patch(img, mask, patch_size=128):
+def extract_random_patch(img, mask, weight, i, patch_size=128):
     
     
     #list available vertebrae
     verts = np.unique(mask)
 #    print('mask values:', verts)
-    chosen_vert = verts[randint(1, len(verts)-1)]
+    chosen_vert = verts[random.randint(1, len(verts)-1)]
 #    print('chosen_vert:', chosen_vert)
     
     #create corresponde instance memory and ground truth
     ins_memory = np.copy(mask)
-    ins_memory[ins_memory >= chosen_vert] = 0
+    ins_memory[ins_memory <= chosen_vert] = 0
     ins_memory[ins_memory > 0] = 1
 #    print(np.unique(ins_memory))
     
@@ -108,109 +117,153 @@ def extract_random_patch(img, mask, patch_size=128):
     gt[gt > 0] = 1
 #    print(np.unique(gt))
 
+    flag_empty = False
     
-    if np.random.rand() <= 0.2:
+    if not i%5:
+        #print(i, ' empty mask')
         patch_center = [np.random.randint(0, s) for s in img.shape]
         lower = [0, 0, 0]
+        
         upper = [img.shape[0], img.shape[1], img.shape[2]]
-        x = patch_center[0]
+        x = patch_center[2]
         y = patch_center[1]
-        z = patch_center[2]
+        z = patch_center[0]
+        
+        #for ins
+        gt = np.copy(mask)
+        
+        flag_empty = True
         
     else:
+        #print(i, ' normal sample')
         indices = np.nonzero(mask == chosen_vert)
         lower = [np.min(i) for i in indices]
         upper = [np.max(i) for i in indices]
         #random center of patch
-        x = randint(lower[0], upper[0])
-        y = randint(lower[1], upper[1])
-        z = randint(lower[2], upper[2])
+        x = random.randint(lower[2], upper[2])
+        y = random.randint(lower[1], upper[1])
+        z = random.randint(lower[0], upper[0])
     
     #extract the patch and padding
-    x_low = int(max(x-patch_size/2, lower[0]))
-    x_up = int(min(x+patch_size/2, upper[0]))
+    x_low = int(x-patch_size/2)
+    x_up =  int(x+patch_size/2)
     
-    y_low = int(max(y-patch_size/2, lower[1]))
-    y_up = int(min(y+patch_size/2, upper[1]))
+    #make sure patches are all inside image
+    if x_low < 0:
+        x_up-=x_low
+        x_low=0
+    elif x_up > img.shape[2]:
+        x_low-=(x_up-img.shape[2])
+        x_up = img.shape[2]
+        
+    y_low = int(y-patch_size/2)
+    y_up =  int(y+patch_size/2)
     
-    z_low = int(max(z-patch_size/2, lower[2]))
-    z_up = int(min(z+patch_size/2, upper[2]))
+    if y_low < 0:
+        y_up-=y_low
+        y_low=0
+    elif y_up > img.shape[1]:
+        y_low-=(y_up-img.shape[1])
+        y_up = img.shape[1]
+   
     
-    x_pad, y_pad, z_pad = np.zeros(2), np.zeros(2), np.zeros(2)
+    z_low = int(z-patch_size/2)
+    z_up =  int(z+patch_size/2)
     
-    img_patch = img[x_low:x_up, y_low:y_up,z_low:z_up]
-    ins_patch = ins_memory[x_low:x_up, y_low:y_up,z_low:z_up]
-    gt_patch = gt[x_low:x_up, y_low:y_up,z_low:z_up]
+    if z_low < 0:
+        z_up-=z_low
+        z_low=0
+    elif z_up > img.shape[0]:
+        z_low-=(z_up-img.shape[0])
+        z_up = img.shape[0]
+        
     
 
-    #paddding the patch to 128*128*128
-    if (patch_size - img_patch.shape[0])%2 == 1:
-        x_pad[0] = int((patch_size - img_patch.shape[0])/2) 
-        x_pad[1] = x_pad[0]+1
-    else:
-        x_pad[0] = (patch_size - img_patch.shape[0])/2
-        x_pad[1] = x_pad[0]
-        
-    if (patch_size - img_patch.shape[1])%2 == 1:
-        y_pad[0] = int((patch_size - img_patch.shape[1])/2) 
-        y_pad[1] = y_pad[0]+1
-    else:
-        y_pad[0] = (patch_size - img_patch.shape[1])/2
-        y_pad[1] = y_pad[0]    
-        
-    if (patch_size - img_patch.shape[2])%2 == 1:
-        z_pad[0] = int((patch_size - img_patch.shape[2])/2) 
-        z_pad[1] = z_pad[0]+1
-    else:
-        z_pad[0] = (patch_size - img_patch.shape[2])/2
-        z_pad[1] = z_pad[0]
+    img_patch = img[z_low:z_up, y_low:y_up, x_low:x_up]
+    ins_patch = ins_memory[z_low:z_up, y_low:y_up, x_low:x_up]
+    gt_patch = gt[z_low:z_up, y_low:y_up, x_low:x_up]
+    weight_patch = weight[z_low:z_up, y_low:y_up, x_low:x_up]
     
+    """
+    #paddding the patch to 128*128*128
+    x_pad, y_pad, z_pad = np.zeros(2), np.zeros(2), np.zeros(2)
+    
+    if x_low == 0:
+      x_pad[0] = int(patch_size - img_patch.shape[2]) 
+    elif x_up == img.shape[2]:
+      x_pad[1] = int(patch_size - img_patch.shape[2]) 
+      
+    if y_low == 0:
+      y_pad[0] = int(patch_size - img_patch.shape[1]) 
+    elif y_up == img.shape[1]:
+      y_pad[1] = int(patch_size - img_patch.shape[1]) 
+      
+    if z_low == 0:
+      z_pad[0] = int(patch_size - img_patch.shape[0]) 
+    elif z_up == img.shape[0]:
+      z_pad[1] = int(patch_size - img_patch.shape[0]) 
+   
     x_pad = x_pad.astype(int)
     y_pad = y_pad.astype(int)
     z_pad = z_pad.astype(int)
     
-    img_patch = np.pad(img_patch, ((x_pad[0], x_pad[1]), (y_pad[0], y_pad[1]), (z_pad[0], z_pad[1])), 'constant', constant_values=img.min())
-    ins_patch = np.pad(ins_patch, ((x_pad[0], x_pad[1]), (y_pad[0], y_pad[1]), (z_pad[0], z_pad[1])), 'constant', constant_values=ins_memory.min())
-    gt_patch = np.pad(gt_patch, ((x_pad[0], x_pad[1]), (y_pad[0], y_pad[1]), (z_pad[0], z_pad[1])), 'constant', constant_values=gt.min())
+    img_patch = np.pad(img_patch, ((z_pad[0], z_pad[1]), (y_pad[0], y_pad[1]), (x_pad[0], x_pad[1])), 'constant', constant_values=img.min())
+    ins_patch = np.pad(ins_patch, ((z_pad[0], z_pad[1]), (y_pad[0], y_pad[1]), (x_pad[0], x_pad[1])), 'constant', constant_values=ins_memory.min())
+    gt_patch = np.pad(gt_patch,   ((z_pad[0], z_pad[1]), (y_pad[0], y_pad[1]), (x_pad[0], x_pad[1])), 'constant', constant_values=gt.min())
+    weight_patch = np.pad(weight_patch, ((z_pad[0], z_pad[1]), (y_pad[0], y_pad[1]), (x_pad[0], x_pad[1])), 'constant', constant_values=weight.min())
+    """
+    
+    if flag_empty:
+      #print('1/6 patches produced')
+      ins_patch = gt_patch
+      gt_patch = np.zeros_like(ins_patch)
+      weight = np.ones_like(ins_patch)
+    
     
     #Randomly Data Augmentation
     # 50% chance elastic deformation
-    if np.random.rand() <= 0.5:
-#        print('elastic deform')
-        img_patch = elastic_transform(img_patch, alpha=300, sigma=8)
+    if np.random.randn() > 0.5:
+        print('elastic deform')
+        img_patch, gt_patch, ins_patch, weight_patch = elastic_transform(img_patch, gt_patch, ins_patch, weight_patch, alpha=200, sigma=8)
     # 50% chance gaussian blur
-    if np.random.rand() <= 0.5:
-#        print('gaussian blur')
+    if np.random.randn() > 0.5:
+        print('gaussian blur')
         img_patch = gaussian_blur(img_patch)
     # 50% chance gaussian noise
-    if np.random.rand() <= 0.5:
-#        print('gaussian noise')
+    if np.random.randn() > 0.5:
+        print('gaussian noise')
         img_patch = gaussian_noise(img_patch)
+    
     # 20% chance random crop 
-    if np.random.rand() <= 0.5:
-#        print('random crop')
-        k = randint(0, 128)
-        img_patch, ins_patch, gt_patch = crop_z(img_patch, ins_patch, gt_patch, k)
-        
+    """
+    if random.randn() > 0.6:
+        k = randint(1, 128)
+        print('random crop at z=', k)
+        img_patch, ins_patch, gt_patch, weight_patch = crop_z(img_patch, ins_patch, gt_patch
+        ,weight_patch, k)
+    """
     #give the label of completeness(partial or complete)
     vol = np.count_nonzero(gt == 1)
     sample_vol = np.count_nonzero(gt_patch == 1 )
     
-#    print('visible volume:{:.6f}'.format(float(sample_vol/(vol+0.0001))))
-    
+    #print('visible volume:{:.6f}'.format(float(sample_vol/(vol+0.0001))))
     c_label = 0 if float(sample_vol/(vol+0.0001)) < 0.98 else 1
     
+
     
     img_patch = np.expand_dims(img_patch, axis=0)
     ins_patch = np.expand_dims(ins_patch, axis=0)
     gt_patch = np.expand_dims(gt_patch, axis=0)
+    weight_patch = np.expand_dims(weight_patch, axis=0)
     c_label = np.expand_dims(c_label, axis=0)
     
-    return img_patch, ins_patch, gt_patch, c_label
+    
+    return img_patch, ins_patch, gt_patch, weight_patch, c_label
 
-
+"""
 #%%% Test purpose
-train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/isotropic_dataset', 'test')
+
+train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/crop_isotropic_dataset')
 
 dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
 
@@ -226,14 +279,13 @@ gt_patch = torch.squeeze(gt_patch)
 weight = torch.squeeze(weight)
 
 
-
 #produce 17000 training samples, and 3000 test sample
 
 sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), './img.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(gt_patch.numpy()), 'gt.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(ins_patch.numpy()), 'ins.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(weight.numpy()), 'wei.nrrd', True)
-
+"""
 
 
 

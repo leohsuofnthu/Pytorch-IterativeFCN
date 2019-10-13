@@ -65,5 +65,6 @@ def crop_z(image, ins, gt, weight, z):
         crop_weight[z:,:,:] = weight.min()
     return crop_img, crop_ins, crop_gt, crop_weight
 
-
+#%% Test
+    
 
