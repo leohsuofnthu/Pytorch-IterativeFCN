@@ -19,7 +19,7 @@ from torch.utils.data import Dataset, DataLoader
 
 import SimpleITK as sitk
 
-from data_augmentation import elastic_transform, gaussian_blur, gaussian_noise, crop_z
+from data_augmentation import elastic_transform, gaussian_blur, gaussian_noise, rotate
 
 """
 The dataset of MICCAI 2014 Spine Challenge
@@ -119,7 +119,7 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
 
     flag_empty = False
     
-    if not i%5:
+    if not i%6:
         #print(i, ' empty mask')
         patch_center = [np.random.randint(0, s) for s in img.shape]
         lower = [0, 0, 0]
@@ -222,26 +222,24 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
     
     #Randomly Data Augmentation
     # 50% chance elastic deformation
-    if np.random.randn() > 0.5:
+    if np.random.randn > 0.5:
         print('elastic deform')
-        img_patch, gt_patch, ins_patch, weight_patch = elastic_transform(img_patch, gt_patch, ins_patch, weight_patch, alpha=200, sigma=8)
+        img_patch, gt_patch, ins_patch, weight_patch = elastic_transform(img_patch, gt_patch, ins_patch, weight_patch, alpha=20, sigma=5)
     # 50% chance gaussian blur
-    if np.random.randn() > 0.5:
+    if np.random.randn > 0.5:
         print('gaussian blur')
         img_patch = gaussian_blur(img_patch)
     # 50% chance gaussian noise
-    if np.random.randn() > 0.5:
+    if np.random.randn > 0.5:
         print('gaussian noise')
         img_patch = gaussian_noise(img_patch)
     
-    # 20% chance random crop 
-    """
-    if random.randn() > 0.6:
-        k = randint(1, 128)
-        print('random crop at z=', k)
-        img_patch, ins_patch, gt_patch, weight_patch = crop_z(img_patch, ins_patch, gt_patch
-        ,weight_patch, k)
-    """
+    if np.random.randn > 0.5:
+        print('crop')
+        img_patch, ins_patch, gt_patch, weight_patch = rotate(img_patch, ins_patch, gt_patch
+        ,weight_patch)
+    
+        
     #give the label of completeness(partial or complete)
     vol = np.count_nonzero(gt == 1)
     sample_vol = np.count_nonzero(gt_patch == 1 )
@@ -260,32 +258,32 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
     
     return img_patch, ins_patch, gt_patch, weight_patch, c_label
 
-"""
+
 #%%% Test purpose
 
-train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/crop_isotropic_dataset')
+#train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/crop_isotropic_dataset')
+#
+#dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
+#
+#img_patch, ins_patch, gt_patch, weight, c_label = next(iter(dataloader_train))
+#
+#print(img_patch.shape)
+#print(gt_patch.shape)
+#
+#
+#img_patch = torch.squeeze(img_patch)
+#ins_patch = torch.squeeze(ins_patch)
+#gt_patch = torch.squeeze(gt_patch)
+#weight = torch.squeeze(weight)
+#
+#
+##produce 17000 training samples, and 3000 test sample
+#
+#sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), './img.nrrd', True)
+#sitk.WriteImage(sitk.GetImageFromArray(gt_patch.numpy()), 'gt.nrrd', True)
+#sitk.WriteImage(sitk.GetImageFromArray(ins_patch.numpy()), 'ins.nrrd', True)
+#sitk.WriteImage(sitk.GetImageFromArray(weight.numpy()), 'wei.nrrd', True)
 
-dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
-
-img_patch, ins_patch, gt_patch, weight, c_label = next(iter(dataloader_train))
-
-print(img_patch.shape)
-print(gt_patch.shape)
-
-
-img_patch = torch.squeeze(img_patch)
-ins_patch = torch.squeeze(ins_patch)
-gt_patch = torch.squeeze(gt_patch)
-weight = torch.squeeze(weight)
-
-
-#produce 17000 training samples, and 3000 test sample
-
-sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), './img.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(gt_patch.numpy()), 'gt.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(ins_patch.numpy()), 'ins.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(weight.numpy()), 'wei.nrrd', True)
-"""
 
 
 

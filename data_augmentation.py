@@ -6,9 +6,11 @@ Created on Wed Sep 18 18:30:56 2019
 """
 
 import numpy as np
-from scipy.ndimage.interpolation import map_coordinates
+import random
+from scipy import ndimage
+from scipy.ndimage.interpolation import map_coordinates, zoom
 from scipy.ndimage.filters import gaussian_filter
-
+from skimage.transform import resize
 
 def elastic_transform(image, mask, ins, weight, alpha, sigma, random_state=None):
     """Elastic deformation of images as described in [Simard2003]_.
@@ -47,24 +49,36 @@ def gaussian_noise(image):
      gauss = 50*np.random.normal(mean,sigma,image.shape)
      gauss = gauss.reshape(image.shape)
      return image + gauss
- 
-def crop_z(image, ins, gt, weight, z):
-    crop_img = np.copy(image)
-    crop_ins = np.copy(ins)
-    crop_gt = np.copy(gt)
-    crop_weight = np.copy(weight)
-    if np.random.rand() <= 0.5:
-        crop_img[:z,:,:] = image.min()
-        crop_ins[:z,:,:] = ins.min()
-        crop_gt[:z,:,:] = gt.min()
-        crop_weight[:z,:,:] = weight.min()
-    else:
-        crop_img[z:,:,:] = image.min()
-        crop_ins[z:,:,:] = ins.min()
-        crop_gt[z:,:,:] = gt.min()
-        crop_weight[z:,:,:] = weight.min()
-    return crop_img, crop_ins, crop_gt, crop_weight
+  
+def rotate(image, ins, gt, weight):
+    degree  = [90, 180, 270]
+    d = degree[random.randint(0,len(degree)-1)]
+    rotate_img = ndimage.rotate(image, d, (1, 2), reshape=False)
+    rotate_ins = ndimage.rotate(ins, d, (1, 2), reshape=False)
+    rotate_gt = ndimage.rotate(gt, d, (1, 2), reshape=False)
+    rotate_weight = ndimage.rotate(weight, d, (1,2), reshape=False)
+    return rotate_img, rotate_ins, rotate_gt, rotate_weight
 
+
+#def random_crop(image, ins, gt, weight):
+#    depth = 80
+#    out_shape = (128,128,128)
+#    start = random.randint(0, image.shape[0]-depth)
+#
+#    image = crop_z(image, start, start+depth)
+#    ins = crop_z(ins, start, start+depth)
+#    gt = crop_z(gt, start, start+depth)
+#    weight = crop_z(weight, start, start+depth)   
+# 
+#    crop_img = resize(image, out_shape, order=1)
+#    crop_ins = resize(ins, out_shape, order=0)
+#    crop_gt = resize(gt, out_shape, order=0)
+#    crop_weight = resize(weight, out_shape, order=0)
+#
+#    return crop_img, crop_ins, crop_gt, crop_weight
+#    
+#def crop_z(arr, start, end):
+#    return arr[start:end]
 #%% Test
     
 
