@@ -238,8 +238,12 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
         print('Random crop along z-axis')
         img_patch, ins_patch, gt_patch, weight_patch = random_crop(img_patch, ins_patch, gt_patch
         ,weight_patch)
-    
-        
+    """
+    if np.random.rand() > 0.5:
+        print('rotate')
+        img_patch, ins_patch, gt_patch, weight_patch = rotate(img_patch, ins_patch, gt_patch
+        ,weight_patch)
+    """
     #give the label of completeness(partial or complete)
     vol = np.count_nonzero(gt == 1)
     sample_vol = np.count_nonzero(gt_patch == 1 )

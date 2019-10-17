@@ -45,8 +45,8 @@ class iterativeFCN(nn.Module):
         
         self.contract = nn.MaxPool3d(2, stride=2)
         
-        self.expand = nn.ConvTranspose3d(num_channels,  num_channels, kernel_size=2, stride=2)
-        #self.expand = nn.Upsample(scale_factor=2)
+        #self.expand = nn.ConvTranspose3d(num_channels,  num_channels, kernel_size=2, stride=2)
+        self.expand = nn.Upsample(scale_factor=2)
         
         self.dense = nn.Linear(num_channels, 1)
 
