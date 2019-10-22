@@ -8,7 +8,7 @@ Created on Wed Sep 18 18:30:56 2019
 import numpy as np
 import random
 from scipy import ndimage
-from scipy.ndimage.interpolation import map_coordinates, zoom
+from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 from skimage.transform import resize
 
@@ -79,6 +79,6 @@ def random_crop(image, ins, gt, weight):
     
 def crop_z(arr, start, end):
     return arr[start:end]
-#%% Test
+
     
 

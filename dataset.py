@@ -12,11 +12,9 @@ import os
 import random
 
 import numpy as np
-from scipy import ndimage
 
-import torch
-from torch.utils.data import Dataset, DataLoader
 
+from torch.utils.data import Dataset
 import SimpleITK as sitk
 
 from data_augmentation import elastic_transform, gaussian_blur, gaussian_noise, rotate, random_crop
@@ -70,31 +68,21 @@ class CSI_Dataset(Dataset):
         mask = sitk.GetArrayFromImage(sitk.ReadImage(mask_file))
         weight = sitk.GetArrayFromImage(sitk.ReadImage(weight_file))
         
-        #z, y, x
-        #print(img.shape)
-        #print(mask.shape)
         #linear transformation from 12bit reconstruction img to HU unit
         #depend on the original data (CSI data value is from 0 ~ 4095)
         #img = img * self.linear_att - self.offset
 
-        
+        #extract a traning patche
         img_patch, ins_patch, gt_patch, weight_patch, c_label = extract_random_patch(img, 
                                                               mask, weight, self.idx)
         
+        #patch normalization        
         #img_patch = (img_patch - img_patch.mean()) / img_patch.std()
-        #print(np.mean(img_patch), np.std(img_patch))
 
         self.idx+=1
             
         return img_patch, ins_patch, gt_patch, weight_patch, c_label
         
-#%% Compute weight distance for loss function
-def compute_distance_weight_matrix(mask, alpha=1, beta=8, omega=6):
-    mask = np.asarray(mask)
-    distance_to_border = ndimage.distance_transform_edt(mask > 0) + ndimage.distance_transform_edt(mask == 0)    
-    weights = alpha + beta*np.exp(-(distance_to_border**2/omega**2))
-    return np.asarray(weights, dtype='float32')
-    
     
 #%% Extract the 128*128*128 patch
 def extract_random_patch(img, mask, weight, i, patch_size=128):
@@ -119,7 +107,7 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
 
     flag_empty = False
     
-    if not i%6:
+    if not i%5:
         #print(i, ' empty mask')
         patch_center = [np.random.randint(0, s) for s in img.shape]
         lower = [0, 0, 0]
@@ -177,8 +165,6 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
         z_low-=(z_up-img.shape[0])
         z_up = img.shape[0]
         
-    
-
     img_patch = img[z_low:z_up, y_low:y_up, x_low:x_up]
     ins_patch = ins_memory[z_low:z_up, y_low:y_up, x_low:x_up]
     gt_patch = gt[z_low:z_up, y_low:y_up, x_low:x_up]
@@ -212,9 +198,9 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
     gt_patch = np.pad(gt_patch,   ((z_pad[0], z_pad[1]), (y_pad[0], y_pad[1]), (x_pad[0], x_pad[1])), 'constant', constant_values=gt.min())
     weight_patch = np.pad(weight_patch, ((z_pad[0], z_pad[1]), (y_pad[0], y_pad[1]), (x_pad[0], x_pad[1])), 'constant', constant_values=weight.min())
     """
-    
+
+    #the patches trained for producing empty mask    
     if flag_empty:
-      #print('1/6 patches produced')
       ins_patch = gt_patch
       gt_patch = np.zeros_like(ins_patch)
       weight = np.ones_like(ins_patch)
@@ -233,17 +219,21 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
     if np.random.rand() > 0.5:
         print('gaussian noise')
         img_patch = gaussian_noise(img_patch)
-    
+        
+    # 50% random crop along z-axis
     if np.random.rand() > 0.5:
         print('Random crop along z-axis')
         img_patch, ins_patch, gt_patch, weight_patch = random_crop(img_patch, ins_patch, gt_patch
         ,weight_patch)
+        
     """
+    #50% random rotate 90, 180, or 270 degrees 
     if np.random.rand() > 0.5:
         print('rotate')
         img_patch, ins_patch, gt_patch, weight_patch = rotate(img_patch, ins_patch, gt_patch
         ,weight_patch)
     """
+    
     #give the label of completeness(partial or complete)
     vol = np.count_nonzero(gt == 1)
     sample_vol = np.count_nonzero(gt_patch == 1 )
@@ -252,7 +242,6 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
     c_label = 0 if float(sample_vol/(vol+0.0001)) < 0.98 else 1
 
 
-    
     img_patch = np.expand_dims(img_patch, axis=0)
     ins_patch = np.expand_dims(ins_patch, axis=0)
     gt_patch = np.expand_dims(gt_patch, axis=0)

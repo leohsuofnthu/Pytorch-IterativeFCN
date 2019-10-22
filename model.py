@@ -7,8 +7,6 @@ Created on Mon Sep 16 11:16:47 2019
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
 
 class iterativeFCN(nn.Module):
     
@@ -100,6 +98,6 @@ class iterativeFCN(nn.Module):
     
         return S,C
     
-#%%
+#%% Test Purpose
 #model = iterativeFCN()
 #summary(model, torch.zeros((1, 2, 128,  128, 128)))
