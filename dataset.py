@@ -201,7 +201,7 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
 
     #the patches trained for producing empty mask    
     if flag_empty:
-      ins_patch = gt_patch
+      ins_patch = np.copy(gt_patch)
       gt_patch = np.zeros_like(ins_patch)
       weight = np.ones_like(ins_patch)
     
