@@ -45,6 +45,7 @@ class CSI_Dataset(Dataset):
         self.img_path = os.path.join(dataset_path, subset, 'img')
         self.mask_path = os.path.join(dataset_path, subset, 'seg')
         self.weight_path = os.path.join(dataset_path, subset, 'weight')
+		
         
         self.img_names =  [f for f in os.listdir(self.img_path) if f.endswith('.mhd')]
 #        self.mask_names = [f for f in os.listdir(self.mask_path) if f.endswith('.mhd')]
@@ -59,6 +60,7 @@ class CSI_Dataset(Dataset):
         img_name =  self.img_names[idx]
         mask_name = self.img_names[idx].split('.')[0]+'_label.mhd'
         weight_name = self.img_names[idx].split('.')[0]+'_weight.nrrd'
+
         
         img_file = os.path.join(self.img_path,  img_name)
         mask_file = os.path.join(self.mask_path, mask_name)
@@ -74,7 +76,7 @@ class CSI_Dataset(Dataset):
 
         #extract a traning patche
         img_patch, ins_patch, gt_patch, weight_patch, c_label = extract_random_patch(img, 
-                                                              mask, weight, self.idx)
+                                                              mask, weight, self.idx, self.subset)
         
         #patch normalization        
         #img_patch = (img_patch - img_patch.mean()) / img_patch.std()
@@ -85,7 +87,7 @@ class CSI_Dataset(Dataset):
         
     
 #%% Extract the 128*128*128 patch
-def extract_random_patch(img, mask, weight, i, patch_size=128):
+def extract_random_patch(img, mask, weight, i, subset, patch_size=128):
     
     
     #list available vertebrae
@@ -208,32 +210,32 @@ def extract_random_patch(img, mask, weight, i, patch_size=128):
     
     #Randomly Data Augmentation
     # 50% chance elastic deformation
-    if np.random.rand() > 0.5:
-        print('elastic deform')
-        img_patch, gt_patch, ins_patch, weight_patch = elastic_transform(img_patch, gt_patch, ins_patch, weight_patch, alpha=20, sigma=5)
-    # 50% chance gaussian blur
-    if np.random.rand() > 0.5:
-        print('gaussian blur')
-        img_patch = gaussian_blur(img_patch)
-    # 50% chance gaussian noise
-    if np.random.rand() > 0.5:
-        print('gaussian noise')
-        img_patch = gaussian_noise(img_patch)
-        
-    # 50% random crop along z-axis
-    if np.random.rand() > 0.5:
-        print('Random crop along z-axis')
-        img_patch, ins_patch, gt_patch, weight_patch = random_crop(img_patch, ins_patch, gt_patch
-        ,weight_patch)
-        
-    """
-    #50% random rotate 90, 180, or 270 degrees 
-    if np.random.rand() > 0.5:
-        print('rotate')
-        img_patch, ins_patch, gt_patch, weight_patch = rotate(img_patch, ins_patch, gt_patch
-        ,weight_patch)
-    """
-    
+    if subset == 'train':
+        if np.random.rand() > 0.5:
+            print('elastic deform')
+            img_patch, gt_patch, ins_patch, weight_patch = elastic_transform(img_patch, gt_patch, ins_patch, weight_patch, alpha=20, sigma=5)
+        # 50% chance gaussian blur
+        if np.random.rand() > 0.5:
+            print('gaussian blur')
+            img_patch = gaussian_blur(img_patch)
+        # 50% chance gaussian noise
+        if np.random.rand() > 0.5:
+            print('gaussian noise')
+            img_patch = gaussian_noise(img_patch)
+            
+        # 50% random crop along z-axis
+        if np.random.rand() > 0.5:
+            print('Random crop along z-axis')
+            img_patch, ins_patch, gt_patch, weight_patch = random_crop(img_patch, ins_patch, gt_patch
+            ,weight_patch)
+            
+        """
+        #50% random rotate 90, 180, or 270 degrees 
+        if np.random.rand() > 0.5:
+            print('rotate')
+            img_patch, ins_patch, gt_patch, weight_patch = rotate(img_patch, ins_patch, gt_patch
+            ,weight_patch)
+        """
     #give the label of completeness(partial or complete)
     vol = np.count_nonzero(gt == 1)
     sample_vol = np.count_nonzero(gt_patch == 1 )
