@@ -64,7 +64,7 @@ def train_single(args, model, device, img_patch, ins_patch, gt_patch, weight, c_
     print( train_dice_coef*100, '%')
     
     #compute the loss
-    lamda = 0.5
+    lamda = 0.1
     
     #segloss 
     FP, FN = seg_loss(S, gt_patch, weight) 

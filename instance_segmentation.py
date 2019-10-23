@@ -31,7 +31,7 @@ mask = np.zeros_like(img)
 
 temp = np.zeros_like(img)
 
-print(img.shape)
+print('Image Shape: ', img.shape)
 
 img_shape = img.shape
 
@@ -42,7 +42,7 @@ def extract(img, x, y, z, patch_size):
 # Create FCN
 print('Create Model!!')
 model = iterativeFCN().to('cuda')
-model.load_state_dict(torch.load('IterativeFCN_best_train_lamda.pth'))
+model.load_state_dict(torch.load('IterativeFCN_best_train.pth'))
 print('Finish Loading Parameters!!')
   
   
@@ -63,7 +63,7 @@ ii = 0
 print('Start Instance Segmentation')
 while True:
   
-  print(z, y, x)
+  print('(Z, Y, X) Now:',z, y, x)
 
   if abs(x-patch_size/2) < sigma_x and abs(y-patch_size/2) < sigma_x and abs(z-patch_size/2) < sigma_x:
     break
@@ -71,8 +71,6 @@ while True:
   #extract patch and instance memory
   img_patch = torch.tensor(np.expand_dims(extract(img, x, y, z , 128), axis=0))
   ins_patch = torch.tensor(np.expand_dims(extract(ins, x, y, z, 128), axis=0))
-  
-  print(img_patch.size())
   
   #sitk.WriteImage(sitk.GetImageFromArray(extract(img, x, y, z , 128)), './img18'+str(ii)+'.nrrd', True)
   #sitk.WriteImage(sitk.GetImageFromArray(extract(ins, x, y, z , 128)), './ins18'+str(ii)+'.nrrd', True)
@@ -86,28 +84,19 @@ while True:
   
   S = torch.squeeze(S.round().to('cpu')).numpy()
   
-  """
-  r = np.copy(torch.squeeze(img_patch.to('cpu')).numpy())
-  r[ r < 1200] = 0
-  r[r>0] = 1
-  S = np.multiply(S , r)
-  """
-  
   vol = np.count_nonzero(S)
-  sitk.WriteImage(sitk.GetImageFromArray(S), './gt18'+str(ii)+'.nrrd', True)
+  #sitk.WriteImage(sitk.GetImageFromArray(S), './gt18'+str(ii)+'.nrrd', True)
   
   ii+=1
   
   #check if vol > 1000
   if vol > n_min:
-    print(vol)
     c_prev[0] = c_now[0]
     c_prev[1] = c_now[1]
     c_prev[2] = c_now[2]
  
     
     center = ndimage.measurements.center_of_mass(S)
-    print(center)
     center = [int(center[0]), int(center[1]), int(center[2])]
     print('Center relative to patch:', center)
     
@@ -139,13 +128,12 @@ while True:
     c_now[0] = int(c_now[0])
     c_now[1] = int(c_now[1])
     c_now[2] = int(c_now[2])
-    print('modified center:', c_now)
-    print('prev', c_prev)
+    print('Modified center:', c_now)
+    print('Prev center', c_prev)
     
     if abs(c_now[0]-c_prev[0]) > sigma_x or abs(c_now[1]-c_prev[1]) > sigma_x or abs(c_now[2]-c_prev[2]) > sigma_x:
-      print('not converge')
       iters+=1
-      print(iters)
+      print('Not converge iterations', iters)
       
       if iters == 20:
         print('iteration == 20')
@@ -172,8 +160,6 @@ while True:
       
         label+=100
         print("seg {}th verts complete!!".format(label))
-        #sitk.WriteImage(sitk.GetImageFromArray(ins), './ins18'+str(label)+'.nrrd', True)
-        #sitk.WriteImage(sitk.GetImageFromArray(mask), './mask18'+str(label)+'.nrrd', True)
         
         
     else:
@@ -191,9 +177,6 @@ while True:
       r = S > 0
       ins[z_low:z_up, y_low:y_up, x_low:x_up][r] = 1 
       mask[z_low:z_up, y_low:y_up, x_low:x_up][r] = label
-      
-      sitk.WriteImage(sitk.GetImageFromArray(ins), './ins18'+str(label)+'.nrrd', True)
-      sitk.WriteImage(sitk.GetImageFromArray(mask), './mask18'+str(label)+'.nrrd', True)
       
       label+=100
       print("seg {}th verts complete!!".format(label))
@@ -221,3 +204,4 @@ while True:
      
 
 print('Finish Segmentation!')
+sitk.WriteImage(sitk.GetImageFromArray(mask), './pred_mask.nrrd', True)
