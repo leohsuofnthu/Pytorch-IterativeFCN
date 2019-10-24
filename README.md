@@ -28,11 +28,11 @@ Since our model using slide window to segment the vertebrae, we need to teach it
 
 ## Training Detail
 I apply the same setting as suggested in papers:
-(1.) Batch-size = 1 due to GPU Memory.
-(2.) Adam with learning rate = 1e3
-(3.) Data Augmentation (Elastic Deformation, Gaussain Blur, Gaussian Noise, Random Crop along z-axis)
+* **Batch-size = 1 due to GPU memory limitation.**
+* **Adam with learning rate = 1e3**
+* **Apply data augmentation via elastic deformation, gaussain blur, gaussian noise, random crop along z-axis**
 
-I train this model on Google Colab, which has similiar CUDA Memory(12GB) with NVIDIA TITANX. Since we generate new patches every iteration, there is no concept of epoch here, and generated patches are always new to the model. I discard the part of validation. I use test data only for segmentation result for evaluation. The training is around 20000 iterations. I set the learning rate at 1e3 from 1th~10000th iterations and 1e4 for 10001th~20000th, which is different from paper that use 1e3 all the time. 
+I train this model on Google Colab, which has similiar CUDA Memory(12GB) with NVIDIA TITANX. Since we generate new patches every iteration, there is no concept of epoch here, and generated patches are always new to the model. I discard the part of validation. I use test data only for segmentation result for evaluation. The training is around 20000 iterations. I set the learning rate at 1e3 from 1 to 10000 iterations and 1e4 for 10001 to 20000, which is different from paper that use 1e3 all the time. 
 
 ## Segmentation Result
 The following are some segmentation result from both train and test data.
