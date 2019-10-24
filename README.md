@@ -32,7 +32,7 @@ I apply the same setting as suggested in papers:
 * **Batch-size = 1 due to GPU memory limitation.**
 * **Adam with learning rate = 1e3**
 * **Apply data augmentation via elastic deformation, gaussain blur, gaussian noise, random crop along z-axis**
-* **Produce empty mask training example every 5th iteratons.
+* **Produce empty mask training example every 5th iteratons.**
 
 I train this model on Google Colab, which has similiar CUDA Memory(12GB) with NVIDIA TITANX. Since we generate new patches every iteration, there is no concept of epoch here, and generated patches are always new to the model. I discard the part of validation. I use test data only for segmentation result for evaluation. The training is around 20000 iterations. I set the learning rate at 1e3 from 1 to 10000 iterations and 1e4 for 10001 to 20000, which is different from paper that use 1e3 all the time. 
 
@@ -63,3 +63,8 @@ medpy 0.25.1
 * **HSU, CHIH-CHAO** - *Professional Machine Learning Master Student at [MILA](https://mila.quebec/)* 
 
 ## Acknowlegements
+Thanks to the information from following sources and kind answer from the paper authors:
+
+* https://www.youtube.com/watch?v=0we-WooGqxw
+* https://gist.github.com/erniejunior/601cdf56d2b424757de5
+* https://github.com/SimpleITK/SimpleITK/issues/561
