@@ -39,7 +39,7 @@ The following are some segmentation result from both train and test data.
 
 
 ### (1)Visual Result
-
+![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/result.png)
 ### (2)Dice Score and ASSD
 **TO BE UPDATED**
 
