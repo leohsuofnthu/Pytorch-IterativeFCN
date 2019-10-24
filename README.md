@@ -21,16 +21,18 @@ The preprocessing steps of each CT images and corresponded masks(both train and 
 ### 3. Illustration of training patches.
 A normal set of a training patches is showned as follows:
 
+![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/example_normal.png)
 
+Since our model using slide window to segment the vertebrae, we need to teach it to produce empty prediction when their is no vertebrae in the image or all vertebrae are segmented and recorded in instnace memory,:
 
-Since our model using slide window to segment the vertebrae, we need to teach it to produce empty prediction when their is no vertebrae in the image or all vertebrae are segmented and recorded in instnace memory:
-
+![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/example_empty.png)
 
 ## Training Detail
 I apply the same setting as suggested in papers:
 * **Batch-size = 1 due to GPU memory limitation.**
 * **Adam with learning rate = 1e3**
 * **Apply data augmentation via elastic deformation, gaussain blur, gaussian noise, random crop along z-axis**
+* **Produce empty mask training example every 5th iteratons.
 
 I train this model on Google Colab, which has similiar CUDA Memory(12GB) with NVIDIA TITANX. Since we generate new patches every iteration, there is no concept of epoch here, and generated patches are always new to the model. I discard the part of validation. I use test data only for segmentation result for evaluation. The training is around 20000 iterations. I set the learning rate at 1e3 from 1 to 10000 iterations and 1e4 for 10001 to 20000, which is different from paper that use 1e3 all the time. 
 
