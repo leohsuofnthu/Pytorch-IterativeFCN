@@ -13,10 +13,10 @@ I choose one of the dataset used in the paper, The spine segmentation challenge 
 
 ### 2. Data preprocessing
 The preprocessing steps of each CT images and corresponded masks(both train and test set) includes:
-(1.) Resample the images and masks to isotropic (1mm * 1mm * 1mm)
-(2.) Calculate the weight penalty coefficient for each images via distance transform.
-(3.) Crop the images and masks to remove the vertebrae that not have labels in masks.
-(4.) Prepare the training patches, including "image patches", "instance memory patches", "mask patches" and "weight patches".
+* **Resample the images and masks to isotropic (1mm * 1mm * 1mm)
+* **Calculate the weight penalty coefficient for each images via distance transform.
+* **Crop the images and masks to remove the vertebrae that not have labels in masks.
+* **Prepare the training patches, including "image patches", "instance memory patches", "mask patches" and "weight patches".
 
 ### 3. Illustration of training patches.
 A normal set of a training patches is showned as follows:
@@ -32,7 +32,7 @@ I apply the same setting as suggested in papers:
 (2.) Adam with learning rate = 1e3
 (3.) Data Augmentation (Elastic Deformation, Gaussain Blur, Gaussian Noise, Random Crop along z-axis)
 
-I train this model on Google Colab, which has similiar CUDA Memory(~12GB) with NVIDIA TITANX. Since we generate new patches every iteration, there is no concept of epoch here, and generated patches are always new to the model. I discard the part of validation. I use test data only for segmentation result for evaluation. The training is around 20000 iterations. I set the learning rate at 1e3 from 1th~10000th iterations and 1e4 for 10001th~20000th, which is different from paper that use 1e3 all the time. 
+I train this model on Google Colab, which has similiar CUDA Memory(12GB) with NVIDIA TITANX. Since we generate new patches every iteration, there is no concept of epoch here, and generated patches are always new to the model. I discard the part of validation. I use test data only for segmentation result for evaluation. The training is around 20000 iterations. I set the learning rate at 1e3 from 1th~10000th iterations and 1e4 for 10001th~20000th, which is different from paper that use 1e3 all the time. 
 
 ## Segmentation Result
 The following are some segmentation result from both train and test data.
