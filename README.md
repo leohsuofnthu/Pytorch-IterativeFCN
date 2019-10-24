@@ -13,10 +13,10 @@ I choose one of the dataset used in the paper, The spine segmentation challenge 
 
 ### 2. Data preprocessing
 The preprocessing steps of each CT images and corresponded masks(both train and test set) includes:
-* **Resample the images and masks to isotropic (1mm * 1mm * 1mm)
-* **Calculate the weight penalty coefficient for each images via distance transform.
-* **Crop the images and masks to remove the vertebrae that not have labels in masks.
-* **Prepare the training patches, including "image patches", "instance memory patches", "mask patches" and "weight patches".
+* **Resample the images and masks to isotropic (1mm * 1mm * 1mm) **
+* **Calculate the weight penalty coefficient for each images via distance transform. **
+* **Crop the images and masks to remove the vertebrae that not have labels in masks. **
+* **Prepare the training patches, including "image patches", "instance memory patches", "mask patches" and "weight patches". **
 
 ### 3. Illustration of training patches.
 A normal set of a training patches is showned as follows:
