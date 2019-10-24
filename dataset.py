@@ -256,30 +256,30 @@ def extract_random_patch(img, mask, weight, i, subset, patch_size=128):
 
 
 #%% Test purpose
-import torch
-from torch.utils.data import Dataset, DataLoader
-train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/crop_isotropic_dataset')
-
-dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
-
-img_patch, ins_patch, gt_patch, weight, c_label = next(iter(dataloader_train))
-
-print(img_patch.shape)
-print(gt_patch.shape)
-
-
-img_patch = torch.squeeze(img_patch)
-ins_patch = torch.squeeze(ins_patch)
-gt_patch = torch.squeeze(gt_patch)
-weight = torch.squeeze(weight)
-
-
-#produce 17000 training samples, and 3000 test sample
-
-sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), './img.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(gt_patch.numpy()), './gt.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(ins_patch.numpy()), './ins.nrrd', True)
-sitk.WriteImage(sitk.GetImageFromArray(weight.numpy()), './wei.nrrd', True)
+#import torch
+#from torch.utils.data import Dataset, DataLoader
+#train_dataset = CSI_Dataset('D:/Project III- Iterative Fully Connected Network for Vertebrae Segmentation/Pytorch-IterativeFCN/crop_isotropic_dataset')
+#
+#dataloader_train = DataLoader(train_dataset, batch_size=1, shuffle=True)
+#
+#img_patch, ins_patch, gt_patch, weight, c_label = next(iter(dataloader_train))
+#
+#print(img_patch.shape)
+#print(gt_patch.shape)
+#
+#
+#img_patch = torch.squeeze(img_patch)
+#ins_patch = torch.squeeze(ins_patch)
+#gt_patch = torch.squeeze(gt_patch)
+#weight = torch.squeeze(weight)
+#
+#
+##produce 17000 training samples, and 3000 test sample
+#
+#sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), './img.nrrd', True)
+#sitk.WriteImage(sitk.GetImageFromArray(gt_patch.numpy()), './gt.nrrd', True)
+#sitk.WriteImage(sitk.GetImageFromArray(ins_patch.numpy()), './ins.nrrd', True)
+#sitk.WriteImage(sitk.GetImageFromArray(weight.numpy()), './wei.nrrd', True)
 
 
 
