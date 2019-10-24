@@ -38,9 +38,9 @@ I train this model on Google Colab, which has similiar CUDA Memory(12GB) with NV
 The following are some segmentation result from both train and test data.
 
 
-### Visual Result
+### (1)Visual Result
 
-### Averge Dice Score and ASSD
+### (2)Dice Score and ASSD
 **TO BE UPDATED**
 
 ## Environment Requirement
