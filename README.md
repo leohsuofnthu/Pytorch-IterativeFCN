@@ -60,7 +60,7 @@ medpy 0.25.1
 
 ## Authors
 
-* **HSU, CHIH-CHAO** - *Professional Machine Learning Master Student at [MILA](https://mila.quebec/)* 
+* **HSU, CHIH-CHAO** - *Professional Machine Learning Master Student at [Mila](https://mila.quebec/)* 
 
 ## Acknowlegements
 Thanks to the information from following sources and kind answer from the paper authors:
