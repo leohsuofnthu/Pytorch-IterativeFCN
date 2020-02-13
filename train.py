@@ -118,7 +118,7 @@ if __name__ == "__main__":
                         help='path of processed dataset')
     parser.add_argument('--checkpoints', type=str, default='./checkpoints',
                         help='path of training snapshot')
-    parser.add_argument('--resume', type=bool, default=True,
+    parser.add_argument('--resume', type=bool, default=False,
                         help='resume training by loading last snapshot')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 64)')
@@ -183,7 +183,7 @@ if __name__ == "__main__":
         test_acc = checkpoint['test_acc']
 
     # Start Training
-    while iteration < args.iterations+1:
+    while iteration < args.iterations + 1:
         start_time = time.time()
         epoch_train_dice = []
         epoch_test_dice = []
@@ -205,14 +205,12 @@ if __name__ == "__main__":
             avg_train_dice = (sum(epoch_train_dice) / len(epoch_train_dice)) * 100
             epoch_train_accuracy = (correct_train_count / train_interval) * 100
 
-            """
             logging.info('Iter {}-{}: \t Loss: {:.6f}\t acc: {:.6f}%\t dice: {:.6f}%'.format(
-                                                                                           iteration-args.log_interval,
-                                                                                           iteration,
-                                                                                           avg_train_loss,
-                                                                                           epoch_train_accuracy,
-                                                                                           avg_train_dice))
-            """
+                iteration - args.log_interval,
+                iteration,
+                avg_train_loss,
+                epoch_train_accuracy,
+                avg_train_dice))
 
             if avg_train_loss < best_train_loss:
                 best_train_loss = avg_train_loss
@@ -231,14 +229,12 @@ if __name__ == "__main__":
             avg_test_dice = (sum(epoch_test_dice) / len(epoch_test_dice)) * 100
             epoch_test_accuracy = (correct_test_count / eval_interval) * 100
 
-            """
             logging.info('Iter {}-{} eval: \t Loss: {:.6f}\t acc: {:.6f}%\t dice: {:.6f}%'.format(
-                                                                                                    iteration - args.log_interval,
-                                                                                                    iteration,
-                                                                                                    avg_test_loss,
-                                                                                                    epoch_test_accuracy,
-                                                                                                    avg_test_dice))
-            """
+                iteration - args.log_interval,
+                iteration,
+                avg_test_loss,
+                epoch_test_accuracy,
+                avg_test_dice))
 
             if avg_test_dice > best_test_dice:
                 best_test_dice = avg_test_dice
