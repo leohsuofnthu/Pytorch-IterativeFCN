@@ -23,8 +23,6 @@ def instance_segmentation(model, img_name, patch_size, sigma_x, lim_alternate_ti
     img = sitk.GetArrayFromImage(sitk.ReadImage(img_name))
     ins = np.zeros_like(img)
     mask = np.zeros_like(img)
-
-    logging.info('Image Shape: %s' % img.shape)
     img_shape = img.shape
 
     # slide window with initial center coord
