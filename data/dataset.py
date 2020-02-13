@@ -133,21 +133,17 @@ def extract_random_patch(img, mask, weight, i, subset, empty_interval=5, patch_s
     # 50% chance elastic deformation
     if subset == 'train':
         if np.random.rand() > 0.5:
-            print('elastic deform')
             img_patch, gt_patch, ins_patch, weight_patch = elastic_transform(img_patch, gt_patch, ins_patch,
                                                                              weight_patch, alpha=20, sigma=5)
         # 50% chance gaussian blur
         if np.random.rand() > 0.5:
-            print('gaussian blur')
             img_patch = gaussian_blur(img_patch)
         # 50% chance gaussian noise
         if np.random.rand() > 0.5:
-            print('gaussian noise')
             img_patch = gaussian_noise(img_patch)
 
         # 50% random crop along z-axis
         if np.random.rand() > 0.5:
-            print('Random crop along z-axis')
             img_patch, ins_patch, gt_patch, weight_patch = random_crop(img_patch, ins_patch, gt_patch
                                                                        , weight_patch)
 

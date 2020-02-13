@@ -118,15 +118,17 @@ if __name__ == "__main__":
                         help='path of processed dataset')
     parser.add_argument('--weight', type=str, default='./weights',
                         help='path of processed dataset')
+    parser.add_argument('--resume', type=bool, default=False,
+                        help='resume training by loading last snapshot')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--iterations', type=int, default=80000, metavar='N',
+    parser.add_argument('--iterations', type=int, default=100000, metavar='N',
                         help='number of iterations to train (default: 5000)')
     parser.add_argument('--log_interval', type=int, default=1000, metavar='N',
                         help='number of iterations to train (default: 5000)')
-    parser.add_argument('--eval_iters', type=int, default=100, metavar='N',
+    parser.add_argument('--eval_iters', type=int, default=20, metavar='N',
                         help='number of iterations to train (default: 5000)')
     parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
                         help='learning rate (default: 0.01)')
@@ -143,8 +145,13 @@ if __name__ == "__main__":
     # Use GPU if it is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Create model
+    # Create model and check if we want to resume training
     model = IterativeFCN(num_channels=8).to('cuda')
+    if args.resume:
+        """
+            load state from last training snapshot
+        """
+        pass
     # model.load_state_dict(torch.load('./IterativeFCN_best_train_lamda.pth'))
 
     batch_size = args.batch_size
@@ -165,7 +172,7 @@ if __name__ == "__main__":
     test_acc = []
     train_dice = []
     test_dice = []
-    best_train_dice = 0
+    best_train_loss = 0
     best_test_dice = 0
 
     total_iteration = args.iterations
@@ -188,7 +195,8 @@ if __name__ == "__main__":
         # training process
         for i in range(train_interval):
             img_patch, ins_patch, gt_patch, weight, c_label = next(iter(train_loader))
-            t_loss, t_c, t_dice = train_single(model, device, img_patch, ins_patch, gt_patch, weight, c_label, optimizer)
+            t_loss, t_c, t_dice = train_single(model, device, img_patch, ins_patch, gt_patch, weight, c_label,
+                                               optimizer)
             epoch_train_loss.append(t_loss)
             epoch_train_dice.append(t_dice)
             correct_train_count += t_c
@@ -202,10 +210,10 @@ if __name__ == "__main__":
                                                                                       epoch_train_accuracy * 100,
                                                                                       avg_train_dice * 100))
 
-        if avg_train_dice > best_train_dice:
-            best_train_dice = avg_train_dice
+        if avg_train_loss < best_train_loss:
+            best_train_loss = avg_train_loss
             print('--- Saving model at Avg Train Dice:{:.2f}%  ---'.format(avg_train_dice * 100))
-            torch.save(model.state_dict(), os.path.join(args.weight,'.IterativeFCN_best_train.pth'))
+            torch.save(model.state_dict(), os.path.join(args.weight, '.IterativeFCN_best_train.pth'))
 
         # validation process
         for i in range(eval_interval):
@@ -227,7 +235,7 @@ if __name__ == "__main__":
         if avg_test_dice > best_test_dice:
             best_test_dice = avg_test_dice
             print('--- Saving model at Avg Train Dice:{:.2f}%  ---'.format(avg_test_dice * 100))
-            torch.save(model.state_dict(), os.path.join(args.weight,'./IterativeFCN_best_valid.pth'))
+            torch.save(model.state_dict(), os.path.join(args.weight, './IterativeFCN_best_valid.pth'))
 
         print('-------------------------------------------------------')
 
