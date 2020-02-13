@@ -1,12 +1,13 @@
 import torch
 import SimpleITK as sitk
-from data.dataset import CSI_Dataset
+from pathlib import Path
+from data.dataset import CSIDataset
 from torch.utils.data import Dataset, DataLoader
 
 crop_img = '../crop_isotropic_dataset'
 batch_size = 1
 
-train_dataset = CSI_Dataset(crop_img)
+train_dataset = CSIDataset(crop_img)
 train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True)
 
 img_patch, ins_patch, gt_patch, weight, c_label = next(iter(train_dataloader))
@@ -22,6 +23,7 @@ assert gt_patch.shape == (128, 128, 128)
 assert weight.shape == (128, 128, 128)
 
 # store patches for visualization
+Path('./samples/').mkdir(parents=True, exist_ok=True)
 sitk.WriteImage(sitk.GetImageFromArray(img_patch.numpy()), './samples/img.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(gt_patch.numpy()), './samples/gt.nrrd', True)
 sitk.WriteImage(sitk.GetImageFromArray(ins_patch.numpy()), './samples/ins.nrrd', True)

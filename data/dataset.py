@@ -9,7 +9,7 @@ from data.data_augmentation import elastic_transform, gaussian_blur, gaussian_no
 from utils.utils import force_inside_img
 
 
-class CSI_Dataset(Dataset):
+class CSIDataset(Dataset):
     """MICCAI 2014 Spine Challange Dataset"""
 
     def __init__(self,
@@ -94,7 +94,6 @@ def extract_random_patch(img, mask, weight, i, subset, empty_interval=5, patch_s
 
     # send empty mask sample in certain frequency
     if i % empty_interval == 0:
-        print(i, ' empty mask')
         patch_center = [np.random.randint(0, s) for s in img.shape]
         x = patch_center[2]
         y = patch_center[1]
@@ -104,7 +103,6 @@ def extract_random_patch(img, mask, weight, i, subset, empty_interval=5, patch_s
         gt = np.copy(mask)
         flag_empty = True
     else:
-        print(i, ' normal sample')
         indices = np.nonzero(mask == chosen_vert)
         lower = [np.min(i) for i in indices]
         upper = [np.max(i) for i in indices]
@@ -129,9 +127,9 @@ def extract_random_patch(img, mask, weight, i, subset, empty_interval=5, patch_s
         ins_patch = np.copy(gt_patch)
         ins_patch[ins_patch > 0] = 1
         gt_patch = np.zeros_like(ins_patch)
-        weight = np.ones_like(ins_patch)
+        weight_patch = np.ones_like(ins_patch)
 
-    # Randomly Data Augmentation
+    # Randomly on-the-fly Data Augmentation
     # 50% chance elastic deformation
     if subset == 'train':
         if np.random.rand() > 0.5:
@@ -153,18 +151,9 @@ def extract_random_patch(img, mask, weight, i, subset, empty_interval=5, patch_s
             img_patch, ins_patch, gt_patch, weight_patch = random_crop(img_patch, ins_patch, gt_patch
                                                                        , weight_patch)
 
-        """
-        #50% random rotate 90, 180, or 270 degrees 
-        if np.random.rand() > 0.5:
-            print('rotate')
-            img_patch, ins_patch, gt_patch, weight_patch = rotate(img_patch, ins_patch, gt_patch
-            ,weight_patch)
-        """
-    # give the label of completeness(partial or complete)
+    # decide label of completeness(partial or complete)
     vol = np.count_nonzero(gt == 1)
     sample_vol = np.count_nonzero(gt_patch == 1)
-
-    # print('visible volume:{:.6f}'.format(float(sample_vol/(vol+0.0001))))
     c_label = 0 if float(sample_vol / (vol + 0.0001)) < 0.98 else 1
 
     img_patch = np.expand_dims(img_patch, axis=0)

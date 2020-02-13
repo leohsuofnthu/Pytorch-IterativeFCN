@@ -1,5 +1,7 @@
+import os
 import time
 import argparse
+import numpy as np
 
 import matplotlib.pyplot as plt
 import torch
@@ -7,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from data.dataset import CSI_Dataset
+from data.dataset import CSIDataset
 from utils.metrics import DiceCoeff
 from iterativeFCN import IterativeFCN
 
@@ -112,40 +114,44 @@ if __name__ == "__main__":
 
     # Training args
     parser = argparse.ArgumentParser(description='Iterative Fully Convolutional Network')
+    parser.add_argument('--dataset', type=str, default='./crop_isotropic_dataset',
+                        help='path of processed dataset')
+    parser.add_argument('--weight', type=str, default='./weights',
+                        help='path of processed dataset')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1, metavar='N',
                         help='input batch size for testing (default: 1000)')
     parser.add_argument('--iterations', type=int, default=80000, metavar='N',
                         help='number of iterations to train (default: 5000)')
+    parser.add_argument('--log_interval', type=int, default=1000, metavar='N',
+                        help='number of iterations to train (default: 5000)')
+    parser.add_argument('--eval_iters', type=int, default=100, metavar='N',
+                        help='number of iterations to train (default: 5000)')
     parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
                         help='learning rate (default: 0.01)')
-    parser.add_argument('--no-cuda', action='store_true', default=True,
-                        help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
                         help='random seed (default: 1)')
-    parser.add_argument('--log-interval', type=int, default=1000, metavar='N',
-                        help='how many batches to wait before logging training status')
-
     parser.add_argument('--save-model', action='store_true', default=True,
                         help='For Saving the current Model')
-
     args = parser.parse_args()
+
+    # set random seed for reproducibility
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
 
     # Use GPU if it is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Create FCN
+    # Create model
     model = IterativeFCN(num_channels=8).to('cuda')
     # model.load_state_dict(torch.load('./IterativeFCN_best_train_lamda.pth'))
-
-    data_root = './crop_isotropic_dataset'
 
     batch_size = args.batch_size
     batch_size_valid = batch_size
 
-    train_dataset = CSI_Dataset(data_root, subset='train')
-    test_dataset = CSI_Dataset(data_root, subset='test')
+    train_dataset = CSIDataset(args.dataset, subset='train')
+    test_dataset = CSIDataset(args.dataset, subset='test')
 
     train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=True)
@@ -162,9 +168,9 @@ if __name__ == "__main__":
     best_train_dice = 0
     best_test_dice = 0
 
-    total_iteration = 20000
-    train_interval = 50
-    eval_interval = 10
+    total_iteration = args.iterations
+    train_interval = args.log_interval
+    eval_interval = args.eval_iters
 
     # Start Training
     for epoch in range(int(total_iteration / train_interval)):
@@ -191,15 +197,15 @@ if __name__ == "__main__":
         avg_train_loss = sum(epoch_train_loss) / len(epoch_train_loss)
         avg_train_dice = sum(epoch_train_dice) / len(epoch_train_dice)
 
-        print('Train Epoch: {} \t Loss: {:.6f}\t acc: {:.6f}%\t dice: {:.6f}%'.format(epoch
-                                                                                      , avg_train_loss
-                                                                                      , epoch_train_accuracy * 100
-                                                                                      , avg_train_dice * 100))
+        print('Train Epoch: {} \t Loss: {:.6f}\t acc: {:.6f}%\t dice: {:.6f}%'.format(epoch,
+                                                                                      avg_train_loss,
+                                                                                      epoch_train_accuracy * 100,
+                                                                                      avg_train_dice * 100))
 
         if avg_train_dice > best_train_dice:
             best_train_dice = avg_train_dice
             print('--- Saving model at Avg Train Dice:{:.2f}%  ---'.format(avg_train_dice * 100))
-            torch.save(model.state_dict(), '.IterativeFCN_best_train.pth')
+            torch.save(model.state_dict(), os.path.join(args.weight,'.IterativeFCN_best_train.pth'))
 
         # validation process
         for i in range(eval_interval):
@@ -213,15 +219,15 @@ if __name__ == "__main__":
         avg_test_loss = sum(epoch_test_loss) / len(epoch_test_loss)
         avg_test_dice = sum(epoch_test_dice) / len(epoch_test_dice)
 
-        print('Validation Epoch: {} \t Loss: {:.6f}\t acc: {:.6f}%\t dice: {:.6f}%'.format(epoch
-                                                                                           , avg_test_loss
-                                                                                           , epoch_test_accuracy * 100
-                                                                                           , avg_test_dice * 100))
+        print('Validation Epoch: {} \t Loss: {:.6f}\t acc: {:.6f}%\t dice: {:.6f}%'.format(epoch,
+                                                                                           avg_test_loss,
+                                                                                           epoch_test_accuracy * 100,
+                                                                                           avg_test_dice * 100))
 
         if avg_test_dice > best_test_dice:
             best_test_dice = avg_test_dice
             print('--- Saving model at Avg Train Dice:{:.2f}%  ---'.format(avg_test_dice * 100))
-            torch.save(model.state_dict(), './IterativeFCN_best_valid.pth')
+            torch.save(model.state_dict(), os.path.join(args.weight,'./IterativeFCN_best_valid.pth'))
 
         print('-------------------------------------------------------')
 
@@ -231,29 +237,3 @@ if __name__ == "__main__":
         test_acc.append(epoch_test_accuracy)
 
         print("--- %s seconds ---" % (time.time() - start_time))
-
-# %% Visualize the training results
-print("training:", len(train_loss))
-print("validation:", len(test_loss))
-x = list(range(1, len(train_loss)))
-# plot train/validation loss versus epoch
-plt.figure()
-plt.title("Train/Validation Loss")
-plt.xlabel("Epochs")
-plt.ylabel("Total Loss")
-plt.plot(x, train_loss, label="train loss")
-plt.plot(x, test_loss, color='red', label="validation loss")
-plt.legend(loc='upper right')
-plt.grid(True)
-plt.show()
-
-# plot train/validation loss versus epoch
-plt.figure()
-plt.title("Train/Validation Accuracy")
-plt.xlabel("Epochs")
-plt.ylabel("Accuracy")
-plt.plot(x, train_acc, label="train acc")
-plt.plot(x, test_acc, color='red', label="validation acc")
-plt.legend(loc='upper right')
-plt.grid(True)
-plt.show()
