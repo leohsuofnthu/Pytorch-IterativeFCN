@@ -34,7 +34,7 @@ I apply the same setting as suggested in papers:
 * **Apply data augmentation via elastic deformation, gaussain blur, gaussian noise, random crop along z-axis**
 * **Produce empty mask training example every 5th iteratons.**
 
-I trained this model on Google Colab, which has similiar CUDA Memory(12GB) with NVIDIA TITANX. The provided pretrained weight here is trained only with around 25000 iterations. The initial learning rate at 1e3 from 1 to 10000 iterations, 1e4 for 10001 to 20000 and 1e5 for the rest of iterations, which is different from paper that using 1e3 for whole training.
+I trained this model on Google Colab, which has similiar CUDA Memory(12GB) with NVIDIA TITANX. The provided [pretrained weight]:https://github.com/leohsuofnthu/Pytorch-IterativeFCN/tree/master/weights here is trained only with around 25000 iterations. The initial learning rate at 1e3 from 1 to 10000 iterations, 1e4 for 10001 to 20000 and 1e5 for the rest of iterations, which is different from paper that using 1e3 for whole training.
 
 ## Segmentation Result
 The following are some segmentation result from both train and test data.
@@ -42,12 +42,12 @@ The following are some segmentation result from both train and test data.
 ### (1)Visual Result
 ![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/result.png)
 
-### (2)Dice Coefficient
-| My Result     | Paper Results |
+### (2)Averge Dice Coefficient 
+| Result        | Paper Results |
 | ------------- | ------------- |
 | 0.918         | 0.958         |
 
-P.S. I did not use any refine technique for preprocessing and postprocessing to improve the result. 
+P.S. None of refine technique for preprocessing and postprocessing are using in this repo.
 
 ## Usage
 ### Setup the Environment
@@ -68,7 +68,7 @@ python train.py --dataset 'the directory of preprocessed CSI dataset'
 
 ### Instance Segmentation 
 ```bash
-python instance_segmentation.py --test_dir 'the directory of test images'
+python instance_segmentation.py --test_dir 'the directory of test images' --weights 'pretrained weights'
 ```
 
 ### Evaluation the Dice Coefficient with labels
