@@ -19,7 +19,3 @@ def DiceCoeff(pred, gt):
         pred = 1 - pred
 
     return dc(pred, gt)
-
-
-def ASSD(pred, gt):
-    return assd(pred.to('cpu').numpy(), gt.to('cpu').numpy())
