@@ -38,7 +38,7 @@ class IterativeFCN(nn.Module):
         self.contract = nn.MaxPool3d(2, stride=2)
         self.expand = nn.Upsample(scale_factor=2)
 
-        self.dense = nn.Linear(num_channels*2, 1)
+        self.dense = nn.Linear(num_channels, 1)
 
     def forward(self, x):
         # 2*128*128*128 to 64*128*128*128

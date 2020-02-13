@@ -1,5 +1,12 @@
 import numpy as np
+import torch
 from medpy.metric.binary import assd, dc
+
+
+def Segloss(pred, target, weight):
+    FP = torch.sum(weight * (1 - target) * pred)
+    FN = torch.sum(weight * (1 - pred) * target)
+    return FP, FN
 
 
 def DiceCoeff(pred, gt):

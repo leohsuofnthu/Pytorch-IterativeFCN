@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Sep 27 21:59:48 2019
-
-@author: Gabriel Hsu
-"""
 import SimpleITK as sitk
 import numpy as np
 import torch

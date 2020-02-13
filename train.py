@@ -2,6 +2,7 @@ import os
 import time
 import argparse
 import numpy as np
+import logging
 
 import matplotlib.pyplot as plt
 import torch
@@ -10,14 +11,14 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from data.dataset import CSIDataset
-from utils.metrics import DiceCoeff
+from utils.metrics import DiceCoeff, Segloss
 from iterativeFCN import IterativeFCN
 
-
-def seg_loss(pred, target, weight):
-    FP = torch.sum(weight * (1 - target) * pred)
-    FN = torch.sum(weight * (1 - pred) * target)
-    return FP, FN
+logging.basicConfig(
+    format='%(asctime)s : %(levelname)s : %(message)s',
+    level=logging.INFO,
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
 
 
 def train_single(model, device, img_patch, ins_patch, gt_patch, weight, c_label, optimizer):
@@ -47,16 +48,14 @@ def train_single(model, device, img_patch, ins_patch, gt_patch, weight, c_label,
     pred = torch.round(S).detach()
     train_dice_coef = DiceCoeff(pred, gt_patch.detach())
 
-    print(train_dice_coef * 100, '%')
-
     # calculate total loss
     lamda = 0.1
-    FP, FN = seg_loss(S, gt_patch, weight)
+    FP, FN = Segloss(S, gt_patch, weight)
     s_loss = lamda * FP + FN
     c_loss = F.binary_cross_entropy(torch.unsqueeze(C, dim=0), c_label)
-
-    print(s_loss.item(), c_loss.item())
     train_loss = s_loss + c_loss
+
+    logging.info("train_dice_coef: %s, S Loss: %s, C Loss: %s" %(train_dice_coef, s_loss.item(), c_loss.item()))
 
     if C.round() == c_label:
         correct = 1
@@ -91,14 +90,13 @@ def test_single(device, img_patch, ins_patch, gt_patch, weight, c_label):
     pred = torch.round(S).detach()
     test_dice_coef = DiceCoeff(pred, gt_patch.detach())
 
-    print(test_dice_coef * 100, '%')
-
     # calculate total loss
     lamda = 0.1
-    FP, FN = seg_loss(S, gt_patch, weight)
+    FP, FN = Segloss(S, gt_patch, weight)
     s_loss = lamda * FP + FN
     c_loss = F.binary_cross_entropy(torch.unsqueeze(C, dim=0), c_label)
-    print(s_loss.item(), c_loss.item())
+
+    logging.info("train_dice_coef: %s, S Loss: %s, C Loss: %s" %(test_dice_coef, s_loss.item(), c_loss.item()))
 
     if C.round() == c_label:
         correct = 1
@@ -110,7 +108,7 @@ def test_single(device, img_patch, ins_patch, gt_patch, weight, c_label):
 
 if __name__ == "__main__":
     # Version of Pytorch
-    print("Pytorch Version:", torch.__version__)
+    logging.info("Pytorch Version:%s" % torch.__version__)
 
     # Training args
     parser = argparse.ArgumentParser(description='Iterative Fully Convolutional Network')
@@ -118,6 +116,8 @@ if __name__ == "__main__":
                         help='path of processed dataset')
     parser.add_argument('--weight', type=str, default='./weights',
                         help='path of processed dataset')
+    parser.add_argument('--checkpoints', type=str, default='./weights',
+                        help='path of training snapshot')
     parser.add_argument('--resume', type=bool, default=False,
                         help='resume training by loading last snapshot')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
@@ -146,13 +146,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Create model and check if we want to resume training
-    model = IterativeFCN(num_channels=8).to('cuda')
-    if args.resume:
-        """
-            load state from last training snapshot
-        """
-        pass
-    # model.load_state_dict(torch.load('./IterativeFCN_best_train_lamda.pth'))
+    model = IterativeFCN(num_channels=4).to('cuda')
 
     batch_size = args.batch_size
     batch_size_valid = batch_size
@@ -166,22 +160,32 @@ if __name__ == "__main__":
     # optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
-    train_loss = []
-    test_loss = []
-    train_acc = []
-    test_acc = []
-    train_dice = []
-    test_dice = []
-    best_train_loss = 0
-    best_test_dice = 0
+    train_loss, test_loss = [], []
+    train_acc, test_acc = [], []
+    train_dice, test_dice = [], []
+    best_train_loss, best_test_dice = 0., 0.
 
     total_iteration = args.iterations
     train_interval = args.log_interval
     eval_interval = args.eval_iters
 
-    # Start Training
-    for epoch in range(int(total_iteration / train_interval)):
+    epochs = 0
 
+    if args.resume:
+        logging.info("Resume Training: Load states from latest checkpoint.")
+        checkpoint = torch.load(os.path.join(args.checkpoints, 'latest_checkpoints'))
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        epochs = checkpoint['epoch']
+        train_loss = checkpoint['train_loss']
+        test_loss = checkpoint['test_loss']
+        train_acc = checkpoint['train_acc']
+        test_acc = checkpoint['test_acc']
+
+    # Start Training
+    for epoch in range(int(total_iteration / train_interval) - epochs):
+
+        epoch += epochs
         start_time = time.time()
         epoch_train_dice = []
         epoch_test_dice = []
@@ -205,14 +209,14 @@ if __name__ == "__main__":
         avg_train_loss = sum(epoch_train_loss) / len(epoch_train_loss)
         avg_train_dice = sum(epoch_train_dice) / len(epoch_train_dice)
 
-        print('Train Epoch: {} \t Loss: {:.6f}\t acc: {:.6f}%\t dice: {:.6f}%'.format(epoch,
-                                                                                      avg_train_loss,
-                                                                                      epoch_train_accuracy * 100,
-                                                                                      avg_train_dice * 100))
+        logging.info('Train Epoch: {} \t Loss: {:.6f}\t acc: {:.6f}%\t dice: {:.6f}%'.format(epoch,
+                                                                                             avg_train_loss,
+                                                                                             epoch_train_accuracy * 100,
+                                                                                             avg_train_dice * 100))
 
         if avg_train_loss < best_train_loss:
             best_train_loss = avg_train_loss
-            print('--- Saving model at Avg Train Dice:{:.2f}%  ---'.format(avg_train_dice * 100))
+            logging.info('--- Saving model at Avg Train Dice:{:.2f}%  ---'.format(avg_train_dice * 100))
             torch.save(model.state_dict(), os.path.join(args.weight, '.IterativeFCN_best_train.pth'))
 
         # validation process
@@ -227,21 +231,34 @@ if __name__ == "__main__":
         avg_test_loss = sum(epoch_test_loss) / len(epoch_test_loss)
         avg_test_dice = sum(epoch_test_dice) / len(epoch_test_dice)
 
-        print('Validation Epoch: {} \t Loss: {:.6f}\t acc: {:.6f}%\t dice: {:.6f}%'.format(epoch,
-                                                                                           avg_test_loss,
-                                                                                           epoch_test_accuracy * 100,
-                                                                                           avg_test_dice * 100))
+        logging.info('Validation Epoch: {} \t Loss: {:.6f}\t acc: {:.6f}%\t dice: {:.6f}%'.format(epoch,
+                                                                                                  avg_test_loss,
+                                                                                                  epoch_test_accuracy * 100,
+                                                                                                  avg_test_dice * 100))
 
         if avg_test_dice > best_test_dice:
             best_test_dice = avg_test_dice
-            print('--- Saving model at Avg Train Dice:{:.2f}%  ---'.format(avg_test_dice * 100))
+            logging.info('--- Saving model at Avg Train Dice:{:.2f}%  ---'.format(avg_test_dice * 100))
             torch.save(model.state_dict(), os.path.join(args.weight, './IterativeFCN_best_valid.pth'))
-
-        print('-------------------------------------------------------')
 
         train_loss.append(epoch_train_loss)
         test_loss.append(epoch_test_loss)
         train_acc.append(epoch_train_accuracy)
         test_acc.append(epoch_test_accuracy)
 
-        print("--- %s seconds ---" % (time.time() - start_time))
+        # save snapshot for resume training
+        logging.info('--- Saving snapshot ---')
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'train_loss': train_loss,
+            'test_loss': test_loss,
+            'train_acc': train_acc,
+            'test_acc': test_acc,
+            'train_dice': train_dice,
+            'test_dice': test_dice,
+            'best_train_loss': best_train_loss,
+            'best_test_dice': best_test_dice}, os.path.join(args.checkpoints, 'latest_checkpoints'))
+
+        logging.info("--- %s seconds ---" % (time.time() - start_time))
