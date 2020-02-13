@@ -1,32 +1,15 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Sep 17 08:55:35 2019
-
-@author: Gabriel Hsu
-
-ref:https://www.kaggle.com/ori226/data-augmentation-with-elastic-deformations
-
-"""
-from __future__ import print_function, division
-
 import os
 import random
 
-import SimpleITK as sitk
 import numpy as np
 from torch.utils.data import Dataset
+import SimpleITK as sitk
 
 from data.data_augmentation import elastic_transform, gaussian_blur, gaussian_noise, random_crop
 
-"""
-The dataset of MICCAI 2014 Spine Challenge
 
-"""
-
-
-# %% Build the dataset
 class CSI_Dataset(Dataset):
-    """xVertSeg Dataset"""
+    """MICCAI 2014 Spine Challange Dataset"""
 
     def __init__(self, dataset_path, subset='train', linear_att=1.0, offset=1000.0):
         """
@@ -46,8 +29,6 @@ class CSI_Dataset(Dataset):
         self.weight_path = os.path.join(dataset_path, subset, 'weight')
 
         self.img_names = [f for f in os.listdir(self.img_path) if f.endswith('.mhd')]
-
-    #        self.mask_names = [f for f in os.listdir(self.mask_path) if f.endswith('.mhd')]
 
     def __len__(self):
         return len(self.img_names)
@@ -86,34 +67,31 @@ class CSI_Dataset(Dataset):
 def extract_random_patch(img, mask, weight, i, subset, patch_size=128):
     # list available vertebrae
     verts = np.unique(mask)
-    #    print('mask values:', verts)
+    # print('mask values:', verts)
     chosen_vert = verts[random.randint(1, len(verts) - 1)]
-    #    print('chosen_vert:', chosen_vert)
+    # print('chosen_vert:', chosen_vert)
 
     # create corresponde instance memory and ground truth
     ins_memory = np.copy(mask)
     ins_memory[ins_memory <= chosen_vert] = 0
     ins_memory[ins_memory > 0] = 1
-    #    print(np.unique(ins_memory))
+    # print(np.unique(ins_memory))
 
     gt = np.copy(mask)
     gt[gt != chosen_vert] = 0
     gt[gt > 0] = 1
-    #    print(np.unique(gt))
+    # print(np.unique(gt))
 
     flag_empty = False
 
-    if True:
-        # print(i, ' empty mask')
+    if i % 5 == 0:
+        print(i, ' empty mask')
         patch_center = [np.random.randint(0, s) for s in img.shape]
-        lower = [0, 0, 0]
-
-        upper = [img.shape[0], img.shape[1], img.shape[2]]
         x = patch_center[2]
         y = patch_center[1]
         z = patch_center[0]
 
-        # for ins
+        # for instance memory
         gt = np.copy(mask)
 
         flag_empty = True

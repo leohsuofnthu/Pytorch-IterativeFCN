@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from scipy import ndimage
 
-from model import iterativeFCN
+from iterativeFCN  import IterativeFCN
 
 # parameters
 patch_size = 128
@@ -42,7 +42,7 @@ def extract(img, x, y, z, patch_size):
 
 # Create FCN
 print('Create Model!!')
-model = iterativeFCN().to('cuda')
+model = IterativeFCN().to('cuda')
 model.load_state_dict(torch.load('IterativeFCN_best_train.pth'))
 print('Finish Loading Parameters!!')
 

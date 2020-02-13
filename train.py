@@ -1,13 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Sep 19 11:21:22 2019
-
-@author: Gabriel Hsu
-"""
-from __future__ import print_function, division
-
-import argparse
 import time
+import argparse
 
 import matplotlib.pyplot as plt
 import torch
@@ -26,13 +18,13 @@ def seg_loss(pred, target, weight):
     return FP, FN
 
 
-# %%
-def train_single(args, model, device, img_patch, ins_patch, gt_patch, weight, c_label, optimizer):
+def train_single(model, device, img_patch, ins_patch, gt_patch, weight, c_label, optimizer):
     torch.cuda.empty_cache()
 
     model.train()
     correct = 0
 
+    # convert data to float, just in case
     img_patch = img_patch.float()
     ins_patch = ins_patch.float()
     gt_patch = gt_patch.float()
@@ -49,24 +41,19 @@ def train_single(args, model, device, img_patch, ins_patch, gt_patch, weight, c_
 
     S, C = model(input_patch.float())
 
-    # Calculate DiceCoeff
+    # calculate dice coefficient
     pred = torch.round(S).detach()
     train_dice_coef = DiceCoeff(pred, gt_patch.detach())
 
     print(train_dice_coef * 100, '%')
 
-    # compute the loss
+    # calculate total loss
     lamda = 0.1
-
-    # segloss
     FP, FN = seg_loss(S, gt_patch, weight)
-
     s_loss = lamda * FP + FN
-
     c_loss = F.binary_cross_entropy(torch.unsqueeze(C, dim=0), c_label)
 
     print(s_loss.item(), c_loss.item())
-
     train_loss = s_loss + c_loss
 
     if C.round() == c_label:
@@ -98,30 +85,17 @@ def test_single(device, img_patch, ins_patch, gt_patch, weight, c_label):
     with torch.no_grad():
         S, C = model(input_patch.float())
 
-    """
-    pred = torch.squeeze(S.to('cpu'))
-    sitk.WriteImage(sitk.GetImageFromArray(pred.numpy()), './pred.nrrd', True)
-    
-    gtt = torch.squeeze(gt_patch.to('cpu'))
-    sitk.WriteImage(sitk.GetImageFromArray(gtt.numpy()), './gt.nrrd', True)
-    """
-
-    # Calculate DiceCoeff
+    # calculate dice coefficient
     pred = torch.round(S).detach()
     test_dice_coef = DiceCoeff(pred, gt_patch.detach())
 
     print(test_dice_coef * 100, '%')
 
-    # compute the loss
+    # calculate total loss
     lamda = 0.1
-
-    # segloss
     FP, FN = seg_loss(S, gt_patch, weight)
-
     s_loss = lamda * FP + FN
-
     c_loss = F.binary_cross_entropy(torch.unsqueeze(C, dim=0), c_label)
-
     print(s_loss.item(), c_loss.item())
 
     if C.round() == c_label:
@@ -132,23 +106,20 @@ def test_single(device, img_patch, ins_patch, gt_patch, weight, c_label):
     return test_loss.item(), correct, test_dice_coef
 
 
-# %%Main
 if __name__ == "__main__":
     # Version of Pytorch
     print("Pytorch Version:", torch.__version__)
 
     # Training args
-    parser = argparse.ArgumentParser(description='Fully Convolutional Network')
+    parser = argparse.ArgumentParser(description='Iterative Fully Convolutional Network')
     parser.add_argument('--batch-size', type=int, default=1, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--test-batch-size', type=int, default=1, metavar='N',
                         help='input batch size for testing (default: 1000)')
-    parser.add_argument('--iterations', type=int, default=5000, metavar='N',
+    parser.add_argument('--iterations', type=int, default=80000, metavar='N',
                         help='number of iterations to train (default: 5000)')
-    parser.add_argument('--lr', type=float, default=0.001, metavar='LR',
+    parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
                         help='learning rate (default: 0.01)')
-    parser.add_argument('--momentum', type=float, default=0.99, metavar='M',
-                        help='SGD momentum (default: 0.5)')
     parser.add_argument('--no-cuda', action='store_true', default=True,
                         help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -163,10 +134,9 @@ if __name__ == "__main__":
 
     # Use GPU if it is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # data_root = './drive/My Drive/patches'
 
     # Create FCN
-    model = IterativeFCN().to('cuda')
+    model = IterativeFCN(num_channels=8).to('cuda')
     # model.load_state_dict(torch.load('./IterativeFCN_best_train_lamda.pth'))
 
     data_root = './crop_isotropic_dataset'
@@ -212,8 +182,7 @@ if __name__ == "__main__":
         # training process
         for i in range(train_interval):
             img_patch, ins_patch, gt_patch, weight, c_label = next(iter(train_loader))
-            t_loss, t_c, t_dice = train_single(args, model, device, img_patch, ins_patch, gt_patch, weight, c_label,
-                                               optimizer)
+            t_loss, t_c, t_dice = train_single(model, device, img_patch, ins_patch, gt_patch, weight, c_label, optimizer)
             epoch_train_loss.append(t_loss)
             epoch_train_dice.append(t_dice)
             correct_train_count += t_c
@@ -235,7 +204,7 @@ if __name__ == "__main__":
         # validation process
         for i in range(eval_interval):
             img_patch, ins_patch, gt_patch, weight, c_label = next(iter(test_loader))
-            v_loss, v_c, v_dice = test_single(args, model, device, img_patch, ins_patch, gt_patch, weight, c_label)
+            v_loss, v_c, v_dice = test_single(model, device, img_patch, ins_patch, gt_patch, weight, c_label)
             epoch_test_loss.append(v_loss)
             epoch_test_dice.append(v_dice)
             correct_test_count += v_c

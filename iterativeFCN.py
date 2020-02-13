@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class IterativeFCN(nn.Module):
     """
     Structure of Iterative FCN Model 
@@ -15,7 +16,7 @@ class IterativeFCN(nn.Module):
             nn.ReLU(inplace=True),
             nn.BatchNorm3d(out_channels))
 
-    def __init__(self, num_channels=16):
+    def __init__(self, num_channels=64):
         super(IterativeFCN, self).__init__()
 
         self.conv_initial = self.consecutive_conv(2, num_channels)
@@ -37,7 +38,7 @@ class IterativeFCN(nn.Module):
         self.contract = nn.MaxPool3d(2, stride=2)
         self.expand = nn.Upsample(scale_factor=2)
 
-        self.dense = nn.Linear(num_channels*2, 1)
+        self.dense = nn.Linear(num_channels, 1)
 
     def forward(self, x):
         # 2*128*128*128 to 64*128*128*128

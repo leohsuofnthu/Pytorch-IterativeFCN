@@ -1,6 +1,7 @@
 import numpy as np
 from medpy.metric.binary import assd, dc
 
+
 def DiceCoeff(pred, gt):
     pred = pred.to('cpu').numpy()
     gt = gt.to('cpu').numpy()
