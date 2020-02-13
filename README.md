@@ -39,27 +39,41 @@ I trained this model on Google Colab, which has similiar CUDA Memory(12GB) with 
 ## Segmentation Result
 The following are some segmentation result from both train and test data.
 
-
 ### (1)Visual Result
 ![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/result.png)
-### (2)Dice Score
+
+### (2)Dice Coefficient
 | My Result     | Paper Results |
 | ------------- | ------------- |
 | 0.918         | 0.958         |
 
-In my implementation, I did not use any refine technique for preprocessing and postprocessing to improve the result. 
+P.S. I did not use any refine technique for preprocessing and postprocessing to improve the result. 
 
-## Environment Requirement
-This project is developed under following environment:
+## Usage
+### Setup the Environment
+The requirment.txt are provided in the repo
+```bash
+pip install -r requirements.txt
 ```
-python 3.6
-pytorch 1.2.0
-numpy 1.16.5
-scipy 1.3.1
-matplotlib 3.0.3
-scikit-image 0.15.0
-SimpleITK 1.2.3
-medpy 0.25.1
+
+### Preprocessing the CSI dataset
+```bash
+python -m data.preprocessing --dataset 'the root path of CSI dataset'
+```
+
+### Start Training
+```bash
+python train.py --dataset 'the directory of preprocessed CSI dataset'
+```
+
+### Instance Segmentation 
+```bash
+python instance_segmentation.py --test_dir 'the directory of test images
+```
+
+### Evaluation the Dice Coefficient with labels
+```bash
+python eval.py --label_dir 'directory of test labels' --pred_dir 'the directory of prediction segmetnation'
 ```
 
 ## Authors
