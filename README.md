@@ -43,7 +43,7 @@ The following are some segmentation result from both train and test data.
 ![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/result.png)
 
 ### (2)Averge Dice Coefficient 
-| Result        | Paper Results |
+| Result        | Paper         |
 | ------------- | ------------- |
 | 0.918         | 0.958         |
 
