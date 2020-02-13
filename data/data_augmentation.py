@@ -1,12 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep 18 18:30:56 2019
-
-@author: Gabriel Hsu
-"""
-
 import random
-
 import numpy as np
 from scipy import ndimage
 from scipy.ndimage.filters import gaussian_filter
@@ -66,8 +58,7 @@ def rotate(image, ins, gt, weight):
     return rotate_img, rotate_ins, rotate_gt, rotate_weight
 
 
-def random_crop(image, ins, gt, weight):
-    depth = 80
+def random_crop(image, ins, gt, weight, depth=80):
     out_shape = (128, 128, 128)
     start = random.randint(0, image.shape[0] - depth - 1)
 

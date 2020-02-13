@@ -1,13 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Sep 18 15:31:22 2019
-
-@author: Gabriel Hsu
-"""
-
 import numpy as np
 from medpy.metric.binary import assd, dc
-
 
 def DiceCoeff(pred, gt):
     pred = pred.to('cpu').numpy()

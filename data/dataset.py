@@ -16,7 +16,7 @@ import SimpleITK as sitk
 import numpy as np
 from torch.utils.data import Dataset
 
-from data_augmentation import elastic_transform, gaussian_blur, gaussian_noise, random_crop
+from data.data_augmentation import elastic_transform, gaussian_blur, gaussian_noise, random_crop
 
 """
 The dataset of MICCAI 2014 Spine Challenge

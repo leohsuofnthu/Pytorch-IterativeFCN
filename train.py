@@ -15,9 +15,9 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from dataset import CSI_Dataset
-from metrics import DiceCoeff
-from model import iterativeFCN
+from data.dataset import CSI_Dataset
+from utils.metrics import DiceCoeff
+from iterativeFCN import IterativeFCN
 
 
 def seg_loss(pred, target, weight):
@@ -79,7 +79,7 @@ def train_single(args, model, device, img_patch, ins_patch, gt_patch, weight, c_
     return train_loss.item(), correct, train_dice_coef
 
 
-def test_single(args, model, device, img_patch, ins_patch, gt_patch, weight, c_label):
+def test_single(device, img_patch, ins_patch, gt_patch, weight, c_label):
     torch.cuda.empty_cache()
 
     model.eval()
@@ -159,15 +159,14 @@ if __name__ == "__main__":
     parser.add_argument('--save-model', action='store_true', default=True,
                         help='For Saving the current Model')
 
-    args = parser.parse_known_args()[0]
-    # args = parser.parse_args()
+    args = parser.parse_args()
 
     # Use GPU if it is available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # data_root = './drive/My Drive/patches'
 
     # Create FCN
-    model = iterativeFCN().to('cuda')
+    model = IterativeFCN().to('cuda')
     # model.load_state_dict(torch.load('./IterativeFCN_best_train_lamda.pth'))
 
     data_root = './crop_isotropic_dataset'
