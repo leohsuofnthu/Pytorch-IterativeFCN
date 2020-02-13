@@ -68,7 +68,7 @@ python train.py --dataset 'the directory of preprocessed CSI dataset'
 
 ### Instance Segmentation 
 ```bash
-python instance_segmentation.py --test_dir 'the directory of test images
+python instance_segmentation.py --test_dir 'the directory of test images'
 ```
 
 ### Evaluation the Dice Coefficient with labels
