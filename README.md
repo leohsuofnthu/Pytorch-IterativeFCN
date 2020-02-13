@@ -34,7 +34,7 @@ I apply the same setting as suggested in papers:
 * **Apply data augmentation via elastic deformation, gaussain blur, gaussian noise, random crop along z-axis**
 * **Produce empty mask training example every 5th iteratons.**
 
-I train this model on Google Colab, which has similiar CUDA Memory(12GB) with NVIDIA TITANX. Since we generate new patches every iteration, there is no concept of epoch here, and generated patches are always new to the model. I discard the part of validation. I use test data only for segmentation result for evaluation. The training is around 20000 iterations. I set the learning rate at 1e3 from 1 to 10000 iterations and 1e4 for 10001 to 20000, which is different from paper that use 1e3 all the time. 
+I trained this model on Google Colab, which has similiar CUDA Memory(12GB) with NVIDIA TITANX. The provided pretrained weight here is trained only with around 25000 iterations. The initial learning rate at 1e3 from 1 to 10000 iterations, 1e4 for 10001 to 20000 and 1e5 for the rest of iterations, which is different from paper that using 1e3 for whole training.
 
 ## Segmentation Result
 The following are some segmentation result from both train and test data.
@@ -42,8 +42,12 @@ The following are some segmentation result from both train and test data.
 
 ### (1)Visual Result
 ![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/result.png)
-### (2)Dice Score and ASSD
-**TO BE UPDATED**
+### (2)Dice Score
+| My Result     | Paper Results |
+| ------------- | ------------- |
+| 0.918         | 0.958         |
+
+In my implementation, I did not use any refine technique for preprocessing and postprocessing to improve the result. 
 
 ## Environment Requirement
 This project is developed under following environment:
