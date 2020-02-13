@@ -47,7 +47,7 @@ The following are some segmentation result from both train and test data.
 | ------------- | ------------- |
 | 0.918         | 0.958         |
 
-P.S. None of refine technique for preprocessing and postprocessing are using in this repo.
+P.S. None of refine technique for preprocessing and postprocessing are used in this repo.
 
 ## Usage
 ### Setup the Environment
