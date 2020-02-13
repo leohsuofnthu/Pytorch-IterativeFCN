@@ -200,7 +200,7 @@ def main():
     for img in test_imgs:
         logging.info("Processing image: %s", img)
         output_path = os.path.join(args.output_dir, img.split('.')[0], '_pred.nrrd')
-        instance_segmentation(model, img, args.patch_size, args.sigma, args.max_alter, args.min_vol, output_path)
+        instance_segmentation(model, os.path.join(args.test_dir, img), args.patch_size, args.sigma, args.max_alter, args.min_vol, output_path)
 
 
 if __name__ == '__main__':
