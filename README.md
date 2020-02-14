@@ -23,7 +23,7 @@ A normal set of a training patches is showned as follows:
 
 ![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/example_normal.png)
 
-Since our model using slide window to segment the vertebrae, we need to teach it to produce empty prediction when their is no vertebrae in the image or all vertebrae are segmented and recorded in instnace memory,:
+Since our model using slide window to segment the vertebrae, we need to teach it to produce empty prediction when their is no vertebrae in the image or all vertebrae are segmented and recorded in instnace memory:
 
 ![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/example_empty.png)
 
