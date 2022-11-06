@@ -17,6 +17,17 @@ def extract(img, x, y, z, patch_size):
     offset = int(patch_size / 2)
     return img[z - offset:z + offset, y - offset:y + offset, x - offset:x + offset]
 
+def force_inside_img(x, patch_size, img_shape):
+    x_low = int(x - patch_size / 2)
+    x_up = int(x + patch_size / 2)
+    if x_low < 0:
+        x_up -= x_low
+        x_low = 0
+    elif x_up > img_shape[2]:
+        x_low -= (x_up - img_shape[2])
+        x_up = img_shape[2]
+    return x_low, x_up
+
 
 def instance_segmentation(model, img_name, patch_size, sigma_x, lim_alternate_times, n_min, output_path):
     step = int(patch_size / 2)
