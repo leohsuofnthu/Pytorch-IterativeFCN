@@ -138,12 +138,12 @@ def main():
         case_id = re.findall(r'\d+', f)[0]
         logging.info('Resampling ' + f + '...')
         if int(case_id) < int(len(files)/2 * args.split_ratio):
-            if '_label' in f:
+            if '_mask' in f:
                 file_output = os.path.join(args.output_isotropic, 'train/seg', f)
             else:
                 file_output = os.path.join(args.output_isotropic, 'train/img', f)
         else:
-            if '_label' in f:
+            if '_mask' in f:
                 file_output = os.path.join(args.output_isotropic, 'test/seg', f)
             else:
                 file_output = os.path.join(args.output_isotropic, 'test/img', f)
