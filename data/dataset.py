@@ -39,8 +39,8 @@ class CSIDataset(Dataset):
 
     def __getitem__(self, idx):
         img_name = self.img_names[idx]
-        mask_name = self.img_names[idx].split('.')[0] + '_mask.mhd'
-        weight_name = self.img_names[idx].split('.')[0] + '_weight.nrrd'
+        mask_name = self.img_names[idx].split('_')[0] + '_mask.mha'
+        weight_name = self.img_names[idx].split('_')[0] + '_weight.nrrd'
 
         img_file = os.path.join(self.img_path, img_name)
         mask_file = os.path.join(self.mask_path, mask_name)
