@@ -59,8 +59,8 @@ def instance_segmentation(model, img_name, patch_size, sigma_x, lim_alternate_ti
             break
 
         # extract patch and instance memory
-        img_patch = torch.tensor(np.expand_dims(extract(img, x, y, z, 89), axis=0))
-        ins_patch = torch.tensor(np.expand_dims(extract(ins, x, y, z, 89), axis=0))
+        img_patch = torch.tensor(np.expand_dims(extract(img, x, y, z, 128), axis=0))
+        ins_patch = torch.tensor(np.expand_dims(extract(ins, x, y, z, 128), axis=0))
 
         input_patch = torch.cat((img_patch, ins_patch))
         input_patch = torch.unsqueeze(input_patch, dim=0)
