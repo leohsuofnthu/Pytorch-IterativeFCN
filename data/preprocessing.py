@@ -8,7 +8,7 @@ import numpy as np
 from scipy import ndimage
 import SimpleITK as sitk
 
-logging.basicConfig(level=logging.info())
+#logging.basicConfig(level=logging.info())
 
 
 # resample the CT images to isotropic
