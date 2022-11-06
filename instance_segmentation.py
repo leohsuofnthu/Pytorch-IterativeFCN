@@ -134,12 +134,16 @@ def instance_segmentation(model, img_name, patch_size, sigma_x, lim_alternate_ti
                 iters = 0
 
                 # converge, update ins and mask
-                z_low = int(c_now[0] - (patch_size / 2))
-                z_up = int(c_now[0] + (patch_size / 2))
-                y_low = int(c_now[1] - (patch_size / 2))
-                y_up = int(c_now[1] + (patch_size / 2))
-                x_low = int(c_now[2] - (patch_size / 2))
-                x_up = int(c_now[2] + (patch_size / 2))
+                #z_low = int(c_now[0] - (patch_size / 2))
+                #z_up = int(c_now[0] + (patch_size / 2))
+                #y_low = int(c_now[1] - (patch_size / 2))
+                #y_up = int(c_now[1] + (patch_size / 2))
+                #x_low = int(c_now[2] - (patch_size / 2))
+                #x_up = int(c_now[2] + (patch_size / 2))
+                
+                x_low, x_up = force_inside_img(x, patch_size, img.shape[2])
+                y_low, y_up = force_inside_img(y, patch_size, img.shape[1])
+                z_low, z_up = force_inside_img(z, patch_size, img.shape[0])
 
                 r = S > 0
                 ins[z_low:z_up, y_low:y_up, x_low:x_up][r] = 1
