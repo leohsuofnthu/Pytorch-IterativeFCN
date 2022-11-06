@@ -58,13 +58,13 @@ def crop_unref_vert(path, out_path, subset):
     img_path = os.path.join(path, subset, 'img')
     mask_path = os.path.join(path, subset, 'seg')
     weight_path = os.path.join(path, subset, 'weight')
-    img_names = [f for f in os.listdir(img_path) if f.endswith('.mhd')]
+    img_names = [f for f in os.listdir(img_path) if f.endswith('.mha')]
 
     for img_name in img_names:
         logging.info('Cropping non-reference vertebrae of %s' % img_name)
         img_name = img_name
-        mask_name = img_name.split('.')[0] + '_label.mhd'
-        weight_name = img_name.split('.')[0] + '_weight.nrrd'
+        mask_name = img_name.split('_')[0] + '_mask.mha'
+        weight_name = img_name.split('_')[0] + '_weight.nrrd'
 
         img_file = os.path.join(img_path, img_name)
         mask_file = os.path.join(mask_path, mask_name)
@@ -102,7 +102,7 @@ def calculate_weight(isotropic_path, subset):
     Path(mask_path).mkdir(parents=True, exist_ok=True)
     Path(weight_path).mkdir(parents=True, exist_ok=True)
 
-    for f in [f for f in os.listdir(mask_path) if f.endswith('.mhd')]:
+    for f in [f for f in os.listdir(mask_path) if f.endswith('.mha')]:
         seg_mask = sitk.GetArrayFromImage(sitk.ReadImage(os.path.join(mask_path, f)))
         weight = compute_distance_weight_matrix(seg_mask)
         sitk.WriteImage(sitk.GetImageFromArray(weight), os.path.join(weight_path, f.split('_')[0] + '_weight.nrrd'),
