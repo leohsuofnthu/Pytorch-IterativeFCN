@@ -18,7 +18,7 @@ class IterativeFCN(nn.Module):
             nn.ReLU(inplace=True),
             nn.BatchNorm3d(out_channels))
 
-    def __init__(self, num_channels=4):
+    def __init__(self, num_channels=64):
         super(IterativeFCN, self).__init__()
 
         self.conv_initial = self.consecutive_conv(2, num_channels)
