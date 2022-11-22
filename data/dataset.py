@@ -32,15 +32,15 @@ class CSIDataset(Dataset):
         self.mask_path = os.path.join(dataset_path, subset, 'seg')
         self.weight_path = os.path.join(dataset_path, subset, 'weight')
 
-        self.img_names = [f for f in os.listdir(self.img_path) if f.endswith('.mhd')]
+        self.img_names = [f for f in os.listdir(self.img_path) if f.endswith('.mha')]
 
     def __len__(self):
         return len(self.img_names)
 
     def __getitem__(self, idx):
         img_name = self.img_names[idx]
-        mask_name = self.img_names[idx].split('.')[0] + '_label.mhd'
-        weight_name = self.img_names[idx].split('.')[0] + '_weight.nrrd'
+        mask_name = self.img_names[idx].split('_')[0] + '_mask.mha'
+        weight_name = self.img_names[idx].split('_')[0] + '_weight.nrrd'
 
         img_file = os.path.join(self.img_path, img_name)
         mask_file = os.path.join(self.mask_path, mask_name)
