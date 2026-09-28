@@ -3,3 +3,11 @@
 /isotropic_dataset
 /test/samples
 /checkpoints
+/pred
+/results
+__pycache__/
+*.pyc
+.venv/
+.idea/
+*.egg-info/
+.pytest_cache/

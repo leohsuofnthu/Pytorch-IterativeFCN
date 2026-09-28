@@ -3,16 +3,17 @@ import numpy as np
 from data.data_augmentation import elastic_transform, gaussian_blur, gaussian_noise, random_crop
 
 
-def force_inside_img(x, patch_size, img_shape):
-    x_low = int(x - patch_size / 2)
-    x_up = int(x + patch_size / 2)
-    if x_low < 0:
-        x_up -= x_low
-        x_low = 0
-    elif x_up > img_shape[2]:
-        x_low -= (x_up - img_shape[2])
-        x_up = img_shape[2]
-    return x_low, x_up
+def force_inside_img(coord, patch_size, axis_size):
+    """Clamp a 1D patch range so [low, up) lies inside [0, axis_size)."""
+    low = int(coord - patch_size / 2)
+    up = int(coord + patch_size / 2)
+    if low < 0:
+        up -= low
+        low = 0
+    elif up > axis_size:
+        low -= (up - axis_size)
+        up = axis_size
+    return low, up
 
 
 def extract_random_patch(img, mask, weight, i, subset, empty_interval=5, patch_size=128):
@@ -50,10 +51,10 @@ def extract_random_patch(img, mask, weight, i, subset, empty_interval=5, patch_s
         y = random.randint(lower[1], upper[1])
         z = random.randint(lower[0], upper[0])
 
-    # force random patches' range within the image
-    x_low, x_up = force_inside_img(x, patch_size, img.shape)
-    y_low, y_up = force_inside_img(y, patch_size, img.shape)
-    z_low, z_up = force_inside_img(z, patch_size, img.shape)
+    # force random patches' range within the image (shape is Z,Y,X)
+    x_low, x_up = force_inside_img(x, patch_size, img.shape[2])
+    y_low, y_up = force_inside_img(y, patch_size, img.shape[1])
+    z_low, z_up = force_inside_img(z, patch_size, img.shape[0])
 
     # crop the patch
     img_patch = img[z_low:z_up, y_low:y_up, x_low:x_up]

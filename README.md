@@ -1,88 +1,180 @@
-# Iterative fully convolutional neural networks for automatic vertebra segmentation
-This is a Pytorch implementation of the paper [Iterative fully convolutional neural networks for automatic vertebra segmentation](https://openreview.net/forum?id=S1NnlZnjG) accepted in MIDL2018. This paper provides and automatic mechanism for precise vertebrae segmentation on CT images. I create this project for polishing up my knowledge of deep learning in medical image. There is an updated version [Iterative fully convolutional neural networks for automatic vertebra segmentation and identification](https://arxiv.org/abs/1804.04383)in 2019 with similiar structure. For the reason of computational cost, I decided to implement the early version in 2018.
+# Iterative FCN — Automatic Vertebra Segmentation (PyTorch)
+
+PyTorch implementation of [Iterative fully convolutional neural networks for automatic vertebra segmentation](https://openreview.net/forum?id=S1NnlZnjG) (MIDL 2018). A later journal version with anatomical identification is [arXiv:1804.04383](https://arxiv.org/abs/1804.04383); **this repo follows the MIDL-style iterative segmentation + completeness head** (no anatomical label regression branch).
+
+## Can you retrain / run inference?
+
+**Yes.** Pipeline:
+
+1. Install deps  
+2. Preprocess CSI / SpineWeb Dataset 2 CT + labels → isotropic cropped volumes  
+3. `python train.py ...` (or use `weights/IterativeFCN_pretrained.pth`)  
+4. `python instance_segmentation.py ...` then optional `python eval.py ...`
+
+You need a **GPU with ~12 GB** VRAM for 128³ patches (paper: Titan X, batch size 1).
+
+---
+
+## Quick start
+
+```bash
+git clone https://github.com/leohsuofnthu/Pytorch-IterativeFCN.git
+cd Pytorch-IterativeFCN
+
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+
+# Optional sanity checks (loads pretrained weights if present)
+python -m pytest test/test_e2e.py -v
+
+# Preprocess CSI dataset (see Dataset below)
+python -m data.preprocessing --dataset ./CSI_dataset
+
+# Train
+python train.py --dataset ./crop_isotropic_dataset --iterations 80000 --log_interval 1000
+
+# Instance segmentation on test images
+python instance_segmentation.py \
+  --test_dir ./crop_isotropic_dataset/test/img \
+  --weights ./weights/IterativeFCN_pretrained.pth \
+  --output_dir ./pred
+
+# Dice vs labels
+python eval.py --label_dir ./crop_isotropic_dataset/test/seg --pred_dir ./pred
+```
+
+---
+
+## Paper findings (audited against arXiv:1804.04383 PDF)
+
+| Topic | Paper | This repo |
+| --- | --- | --- |
+| Input | Image patch + **instance memory** | Same (`torch.cat` of img + ins) |
+| Patch size | **128³**, isotropic **1 mm³** | Same |
+| Segmentation head | **Binary** current-instance mask + **sigmoid** (not softmax) | Same — intentional (GitHub issue #6) |
+| Completeness | Sigmoid score + BCE | Same |
+| Seg loss | `λ·FP_soft + FN_soft` with surface weights `ω=γ·exp(-d²/σ²)+1`, `γ=8`,`σ=6` | Same weights; **λ now anneals 0.1→1** per paper |
+| Optimizer | Adam, lr **0.001**, momentum **0.99**, batch **1** | Adam `betas=(0.99,0.999)`, lr schedule 1e-3→1e-4→1e-5 (documented difference vs fixed 1e-3) |
+| Inference | Sliding window, `vmin=1000`, CoM refinement until converge | Same + `max_steps` safety against endless loops |
+| Anatomical ID loss | In journal version | **Not implemented** (MIDL / this repo) |
+
+**Sigmoid vs softmax:** the network labels “current vertebra vs not” for one instance at a time; sigmoid is correct. Softmax multi-class would be a different design.
+
+**Empty patches:** training samples an empty-mask example every `empty_interval=5` iterations (dataset) so the model can predict “nothing to segment”.
+
+---
+
+## Dataset
+
+CSI 2014 spine segmentation challenge (SpineWeb **Dataset 2**):  
+http://spineweb.digitalimaginggroup.ca/spineweb/index.php?n=Main.Datasets#Dataset_2.3A_Spine_and_Vertebrae_Segmentation  
+
+> Some users report the download is flaky or offline (issues #3/#4). You need CT volumes + vertebra label masks in MetaImage (`.mhd`/`.raw`) form for preprocessing.
+
+Place raw files under e.g. `./CSI_dataset/`, then:
+
+```bash
+python -m data.preprocessing \
+  --dataset ./CSI_dataset \
+  --output_isotropic ./isotropic_dataset \
+  --output_crop ./crop_isotropic_dataset \
+  --split_ratio 0.8
+```
+
+Preprocessing: resample to 1 mm³ → distance weight maps → crop unlabeled vertebrae → `crop_isotropic_dataset/{train,test}/{img,seg,weight}`.
+
+---
+
+## Training
+
+```bash
+python train.py \
+  --dataset ./crop_isotropic_dataset \
+  --weight ./weights \
+  --checkpoints ./checkpoints \
+  --iterations 80000 \
+  --log_interval 1000 \
+  --eval_iters 20 \
+  --lr 1e-3 \
+  --num_channels 64
+```
+
+| Flag | Notes |
+| --- | --- |
+| `--num_channels 64` | **Required** to match `IterativeFCN_pretrained.pth` (old bug used `4`) |
+| `--resume` | Restore `checkpoints/latest_checkpoints.pth` |
+| `--device cuda` / `cpu` | Auto-detected if omitted |
+
+Outputs: `weights/IterativeFCN_best_train.pth`, `weights/IterativeFCN_best_valid.pth`, checkpoints under `./checkpoints/`.
+
+---
+
+## Inference & evaluation
+
+```bash
+python instance_segmentation.py \
+  --test_dir ./crop_isotropic_dataset/test/img \
+  --weights ./weights/IterativeFCN_pretrained.pth \
+  --output_dir ./pred \
+  --patch_size 128 --min_vol 1000 --max_alter 20
+```
+
+```bash
+python eval.py --label_dir ./crop_isotropic_dataset/test/seg --pred_dir ./pred
+```
+
+---
 
 ## Model
-This is the model illustration from the paper. This model contains a similiar shape like [3D U-Net](https://arxiv.org/abs/1606.06650) but with constant channel in every layer and a extend branch for classification propose. There are 2 inputs for this model, inclusing image patch and correspond instanace memory patches. Instance Memory is used to remind the model to segment the first 'unsegmented vertebrae' so as to make sure the vertebrae are segmented one by one.
 
-![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/model.png)
+![model](imgs/model.png)
 
-## Dataset and Pre-processsing
+Constant-width 3D U-Net-style FCN + completeness classifier. Released checkpoint shares encoder/decoder block weights (see `iterativeFCN.py`).
 
-### 1. Dataset
-I choose one of the dataset used in the paper, The spine segmentation challenge in CSI2014. The dataset can be obtain in the Dataset 2 posted on [SpineWeb](http://spineweb.digitalimaginggroup.ca/spineweb/index.php?n=Main.Datasets#Dataset_2.3A_Spine_and_Vertebrae_Segmentation)
+### Segmentation examples
 
-### 2. Data preprocessing
-The preprocessing steps of each CT images and corresponded masks(both train and test set) includes:
-* **Resample the images and masks to isotropic (1mm * 1mm * 1mm)**
-* **Calculate the weight penalty coefficient for each images via distance transform.**
-* **Crop the images and masks to remove the vertebrae that not have labels in masks.**
-* **Prepare the training patches, including "image patches", "instance memory patches", "mask patches" and "weight patches".**
+![normal](imgs/example_normal.png)
 
-### 3. Illustration of training patches.
-A normal set of a training patches is showned as follows:
+![empty](imgs/example_empty.png)
 
-![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/example_normal.png)
+![result](imgs/result.png)
 
-Since our model using slide window to segment the vertebrae, we need to teach it to produce empty prediction when their is no vertebrae in the image or all vertebrae are segmented and recorded in instnace memory:
+| This repo (partial train) | Paper |
+| --- | --- |
+| ~0.918 Dice | ~0.958 Dice |
 
-![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/example_empty.png)
+---
 
-## Training Detail
-I apply the same setting as suggested in papers:
-* **Batch-size = 1 due to GPU memory limitation.**
-* **Adam with learning rate = 1e-3**
-* **Apply data augmentation via elastic deformation, gaussain blur, gaussian noise, random crop along z-axis**
-* **Produce empty mask training example every 5th iteratons.**
+## Tests
 
-I trained this model on Google Colab, which has similiar CUDA Memory(12GB) with NVIDIA TITANX. The provided [pretrained weight](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/tree/master/weights) here is trained only with around 25000 iterations. The initial learning rate at 1e-3 from 1 to 10000 iterations, 1e-4 for 10001 to 20000 and 1e-5 for the rest of iterations, which is different from paper that using 1e-3 for whole training.
-
-## Segmentation Result
-The following are some segmentation result from both train and test data.
-
-### (1)Visual Result
-![ad](https://github.com/leohsuofnthu/Pytorch-IterativeFCN/blob/master/imgs/result.png)
-
-### (2)Averge Dice Coefficient 
-| Result        | Paper         |
-| ------------- | ------------- |
-| 0.918         | 0.958         |
-
-P.S. None of refine technique for preprocessing and postprocessing are used in this repo.
-
-## Usage
-### Setup the Environment
-The requirment.txt are provided in the repo
 ```bash
-pip install -r requirements.txt
+python -m pytest test/test_e2e.py -v
 ```
 
-### Preprocessing the CSI dataset
-```bash
-python -m data.preprocessing --dataset 'the root path of CSI dataset'
-```
+Covers forward shapes, sigmoid binary head, pretrained weight load, FP/FN loss, patch clamping.
 
-### Start Training
-```bash
-python train.py --dataset 'the directory of preprocessed CSI dataset'
-```
+---
 
-### Instance Segmentation 
-```bash
-python instance_segmentation.py --test_dir 'the directory of test images' --weights 'pretrained weights'
-```
+## Tips
 
-### Evaluation the Dice Coefficient with labels
-```bash
-python eval.py --label_dir 'directory of test labels' --pred_dir 'the directory of prediction segmetnation'
-```
+| Issue | Fix |
+| --- | --- |
+| OOM | Keep `--batch-size 1`; reduce other GPU load |
+| `Output size is too small` | Patches must be **128³** (divisible by 16); do not feed 64³ |
+| Endless instance loop | Fixed with caudal `z` stop + `--max_steps`; update code |
+| Pretrained load mismatch | Use `num_channels=64` |
+| Dataset unavailable | See SpineWeb / issue tracker; preprocessing needs local CSI files |
+
+---
 
 ## Authors
 
-* **HSU, CHIH-CHAO** - *Professional Machine Learning Master Student at [Mila](https://mila.quebec/)* 
+- **HSU, CHIH-CHAO** — ML Master’s student at [Mila](https://mila.quebec/)
 
-## Reference
-Thanks to the information from following sources and kind answer from the paper authors:
+## References
 
-* https://www.youtube.com/watch?v=0we-WooGqxw
-* https://gist.github.com/erniejunior/601cdf56d2b424757de5
-* https://github.com/SimpleITK/SimpleITK/issues/561
+- MIDL 2018: https://openreview.net/forum?id=S1NnlZnjG  
+- Journal / extended: https://arxiv.org/abs/1804.04383  
+- 3D U-Net: https://arxiv.org/abs/1606.06650  

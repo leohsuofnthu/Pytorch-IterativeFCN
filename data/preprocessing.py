@@ -8,7 +8,10 @@ import numpy as np
 from scipy import ndimage
 import SimpleITK as sitk
 
-logging.basicConfig(level=logging.info())
+logging.basicConfig(
+    format='%(asctime)s : %(levelname)s : %(message)s',
+    level=logging.INFO,
+)
 
 
 # resample the CT images to isotropic
@@ -22,10 +25,10 @@ def isotropic_resampler(input_path, output_path):
     resampler.SetOutputOrigin(raw_img.GetOrigin())
     resampler.SetOutputSpacing(new_spacing)
 
-    orig_size = np.array(raw_img.GetSize(), dtype=np.int)
+    orig_size = np.array(raw_img.GetSize(), dtype=int)
     orig_spacing = raw_img.GetSpacing()
     new_size = np.array([x * (y / z) for x, y, z in zip(orig_size, orig_spacing, new_spacing)])
-    new_size = np.ceil(new_size).astype(np.int)  # Image dimensions are in integers
+    new_size = np.ceil(new_size).astype(int)  # Image dimensions are in integers
     new_size = [int(s) for s in new_size]
     resampler.SetSize(new_size)
 
